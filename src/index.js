@@ -199,6 +199,43 @@ export class Engine extends EventEmitter {
     /** @internal @prop _pickPos */
     /** @internal @prop _pickResult */
 
+    /** Entity manager / Entity Component System (ECS) 
+     * Aliased to `noa.ents` for convenience.
+     * @type {Entities}
+     */
+    this.entities = createEntities(this, opts)
+    this.ents = this.entities
+    var ents = this.ents
+
+    /** Entity id for the player entity */
+    this.playerEntity = ents.add(
+        opts.playerStart, // starting location
+        opts.playerWidth, opts.playerHeight,
+        null, null, // no mesh for now, no meshOffset, 
+        true, true
+    )
+
+    // make player entity it collide with terrain and other entities
+    ents.addComponent(this.playerEntity, ents.names.collideTerrain)
+    ents.addComponent(this.playerEntity, ents.names.collideEntities)
+
+    // adjust default physics parameters
+    var body = ents.getPhysicsBody(this.playerEntity)
+    body.gravityMultiplier = 2 // less floaty
+    body.autoStep = opts.playerAutoStep // auto step onto blocks
+
+    // input component - sets entity's movement state from key inputs
+    ents.addComponent(this.playerEntity, ents.names.receivesInputs)
+
+    // add a component to make player mesh fade out when zooming in
+    ents.addComponent(this.playerEntity, ents.names.fadeOnZoom)
+
+    // movement component - applies movement forces
+    // todo: populate movement settings from options
+    var moveOpts = {
+        // airJumps: 1
+    }
+    ents.addComponent(this.playerEntity, ents.names.movement, moveOpts)
 
     /** `vec3` class used throughout the engine
      * @type {vec3}
