@@ -105,7 +105,7 @@ function applyMovementPhysics(dt, state, body) {
         if (state._isJumping) { // continue previous jump
             if (state._currjumptime > 0) {
                 var jf = state.jumpForce
-                if (state._currjumptime < dt) jf *= state._currjumptime / dt
+                if (state._currjumptime < dt) { jf *= state._currjumptime / dt; }
                 body.applyForce([0, jf, 0])
                 state._currjumptime -= dt
             }
