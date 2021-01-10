@@ -1,10 +1,44 @@
 
-import vec3 from 'gl-vec3'
-import ECS from 'ent-comp'
-// var ECS = require('../../../../npm-modules/ent-comp')
+import { updatePositionExtents } from '../components/position.js'
+import { setPhysicsFromPosition } from '../components/physics.js'
 
-import { updatePositionExtents } from '../components/position'
-import { setPhysicsFromPosition } from '../components/physics'
+import vec3 from 'gl-vec3'
+import EntComp from 'ent-comp'
+// var EntComp = require('../../../../npm-modules/ent-comp')
+
+// import collideEntities from '../components/collideEntities.js'
+// import collideTerrain from '../components/collideTerrain.js'
+// import fadeOnZoom from '../components/fadeOnZoom.js'
+// import followsEntity from '../components/followsEntity.js'
+// import mesh from '../components/mesh.js'
+import movement from '../components/movement.js'
+import physics from '../components/physics.js'
+import position from '../components/position.js'
+// import receivesInputs from '../components/receivesInputs.js'
+// import shadow from '../components/shadow.js'
+// import smoothCamera from '../components/smoothCamera.js'
+const components = {
+    // 'collideEntities': {fn: collideEntities},
+    // 'collideTerrain': {fn: collideTerrain},
+    // 'fadeOnZoom': {fn: fadeOnZoom},
+    // 'followsEntity': {fn: followsEntity},
+    // 'mesh': {fn: mesh},
+    'movement': {fn: movement, server: true},
+    'physics': {fn: physics, server: true},
+    'position': {fn: position, server: true},
+    // 'receivesInputs': {fn: receivesInputs},
+    // 'shadow': {fn: shadow},
+    // 'smoothCamera': {fn: smoothCamera},
+    'receivesInputs': {},
+    'shadow': {},
+    'smoothCamera': {},
+    'collideEntities': {},
+    'collideTerrain': {},
+    'fadeOnZoom': {},
+    'followsEntity': {},
+    'mesh': {},
+}
+
 
 
 
@@ -151,37 +185,137 @@ export class Entities extends ECS {
             this.names[bareName] = comp
         }
 
-        // create some ECS state accessors
-        // (these are moderately faster than the general case APIs)
+    this.noa = noa
+    this.opts = Object.assign({}, defaults, opts)
 
-        // general
-        this.hasPhysics = this.getComponentAccessor(this.names.physics)
-        this.cameraSmoothed = this.getComponentAccessor(this.names.smoothCamera)
-        this.hasPosition = this.getComponentAccessor(this.names.position)
-        this.hasMesh = this.getComponentAccessor(this.names.mesh)
-        this.getMeshData = this.getStateAccessor(this.names.mesh)
 
-        // position
-        var getPos = this.getStateAccessor(this.names.position)
-        this.getPositionData = getPos
-        this.getPosition = (id) => getPos(id).position
 
-        // physics
-        var getPhys = this.getStateAccessor(this.names.physics)
-        this.getPhysics = getPhys
-        this.getPhysicsBody = (id) => getPhys(id).body
 
-        // misc
-        this.getMovement = this.getStateAccessor(this.names.movement)
-        this.getCollideTerrain = this.getStateAccessor(this.names.collideTerrain)
-        this.getCollideEntities = this.getStateAccessor(this.names.collideEntities)
+    // Bundler magic to import everything in the ../components directory
+    // each component module exports a default function: (noa) => compDefinition
+    // Only imports everything on client side (where require.context is defined)
 
-        // pairwise collideEntities event - this is for client to override
-        this.onPairwiseEntityCollision = function (id1, id2) { }
+
+
+    // let myRequireContext
+    // if (typeof fs.statSync !== "function") {
+    //     const reqContext = require.context('../components/', false, /\.js$/)
+    //     console.log(reqContext.keys())
+    //     reqContext.keys().forEach(name => {
+    //         // convert name ('./foo.js') to bare name ('foo')
+    //         var bareName = /\.\/(.*)\.js/.exec(name)[1]
+    //         var arg = componentArgs[bareName] || undefined
+    //         var compFn = reqContext(name)
+    //         if (compFn.default) compFn = compFn.default
+    //         var compDef = compFn(noa, arg)
+    //         var comp = this.createComponent(compDef)
+    //         this.names[bareName] = comp
+    //     })
+    // }
+    // else {
+    //     const reqContext = requireContext('../../src/components/', false, /\.js$/)
+    //     console.log(reqContext.keys())
+    //     reqContext.keys().forEach(name => {
+    //         console.log("hello", name, /\.\/(.*)\.js/.exec(name))
+    //         // convert name ('./foo.js') to bare name ('foo')
+    //         var bareName = /\.\/(.*)\.js/.exec(name)[1]
+    //         var arg = componentArgs[bareName] || undefined
+    //         var compFn = reqContext(name)
+    //         if (compFn.default) compFn = compFn.default
+    //         var compDef = compFn(noa, arg)
+    //         var comp = this.createComponent(compDef)
+    //         this.names[bareName] = comp
+    //     })
+    // }
+
+
+
+
+
+
+}
+
+// inherit from EntComp
+Entities.prototype = Object.create(EntComp.prototype)
+Entities.prototype.constructor = Entities
+
+/**
+ * 
+ * Create components needed client-side. Call assignFieldsAndHelpers() directly after.
+ * 
+ */
+Entities.prototype.createComponentsClient = function() {
+    // optional arguments to supply to component creation functions
+    var componentArgs = {
+        'shadow': this.opts.shadowDistance,
     }
+    const reqContext = require.context('../components/', false, /\.js$/)
+    reqContext.keys().forEach(name => {
+        // convert name ('./foo.js') to bare name ('foo')
+        var bareName = /\.\/(.*)\.js/.exec(name)[1]
+        var arg = componentArgs[bareName] || undefined
+        var compFn = reqContext(name)
+        if (compFn.default) compFn = compFn.default
+        var compDef = compFn(this.noa, arg)
+        var comp = this.createComponent(compDef)
+        this.names[bareName] = comp
+    })
+}
+
+/**
+ * 
+ * Create components needed server-side. Call assignFieldsAndHelpers() directly after.
+ * 
+ */
+Entities.prototype.createComponentsServer = function() {
+    // optional arguments to supply to component creation functions
+    var componentArgs = {
+        'shadow': this.opts.shadowDistance,
+    }
+    for (const comp in components) {
+        if (components[comp].fn) {
+            this.createComponent(components[comp].fn(this.noa, componentArgs[comp]))
+        }
+        else {
+            this.createComponent({name: comp}) // polyfill
+        }
+        this.names[comp] = comp
+    }
+    console.log(this.names)
+}
 
 
+/**
+ * 
+ * Call directly after either calling either createComponentsClient or createComponentsServer
+ * 
+ */
+Entities.prototype.assignFieldsAndHelpers = function (noa) {
+    // decorate the entities object with accessor functions
+    /** @param id */
+    this.isPlayer = function (id) { return id === noa.playerEntity }
 
+    /** @param id */
+    this.hasPhysics = this.getComponentAccessor(this.names.physics)
+
+    /** @param id */
+    this.cameraSmoothed = this.getComponentAccessor(this.names.smoothCamera)
+
+    /** @param id */
+    this.hasMesh = this.getComponentAccessor(this.names.mesh)
+
+    // position functions
+    /** @param id */
+    this.hasPosition = this.getComponentAccessor(this.names.position)
+    var getPos = this.getStateAccessor(this.names.position)
+
+    /** @param id */
+    this.getPositionData = getPos
+
+    /** @param id */
+    this._localGetPosition = function (id) {
+        return getPos(id)._localPosition
+    }
 
     /*
      * 
@@ -271,28 +405,6 @@ export class Entities extends ECS {
 
 
 
-
-    /*
-     *
-     *
-     *      OTHER ENTITY MANAGEMENT APIs
-     * 
-     *      note most APIs are on the original ECS module (ent-comp)
-     *      these are some overlaid extras for noa
-     *
-     *
-    */
-
-
-    /** 
-     * Safely add a component - if the entity already had the 
-     * component, this will remove and re-add it.
-    */
-    addComponentAgain(id, name, state) {
-        // removes component first if necessary
-        if (this.hasComponent(id, name)) this.removeComponent(id, name)
-        this.addComponent(id, name, state)
-    }
 
 
     /** 
@@ -395,9 +507,40 @@ export class Entities extends ECS {
             })
         }
 
-        // add shadow-drawing component
-        if (shadow) {
-            this.addComponent(eid, this.names.shadow, { size: width })
+/** 
+ * Helper to set up a general entity, and populate with some common components depending on arguments.
+ * 
+ * Parameters: position, width, height [, mesh, meshOffset, doPhysics, shadow]
+ * 
+ * @param position
+ * @param width
+ * @param height..
+ */
+Entities.prototype.add = function (position, width, height, // required
+    mesh, meshOffset, doPhysics, shadow, customEId) {
+
+    var self = this
+
+    // new entity
+    var eid = customEId || this.createEntity()
+
+    // position component
+    this.addComponent(eid, this.names.position, {
+        position: position || [0, 0, 0],
+        width: width,
+        height: height
+    })
+
+    // rigid body in physics simulator
+    if (doPhysics) {
+        // body = this.noa.physics.addBody(box)
+        this.addComponent(eid, this.names.physics)
+        var body = this.getPhysicsBody(eid)
+
+        // handler for physics engine to call on auto-step
+        var smoothName = this.names.smoothCamera
+        body.onStep = function () {
+            self.addComponentAgain(eid, smoothName)
         }
 
         return eid

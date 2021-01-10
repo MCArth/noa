@@ -1,42 +1,4 @@
-
 import vec3 from 'gl-vec3'
-
-
-
-
-
-/** 
- * State object of the `movement` component
- * @class
-*/
-export function MovementState() {
-    this.heading = 0 // radians
-    this.running = false
-    this.jumping = false
-
-    // options
-    this.maxSpeed = 10
-    this.moveForce = 30
-    this.responsiveness = 15
-    this.runningFriction = 0
-    this.standingFriction = 2
-
-    // jumps
-    this.airMoveMult = 0.5
-    this.jumpImpulse = 10
-    this.jumpForce = 12
-    this.jumpTime = 500 // ms
-    this.airJumps = 1
-
-    // internal state
-    this._jumpCount = 0
-    this._currjumptime = 0
-    this._isJumping = false
-}
-
-
-
-
 
 /**
  * Movement component. State stores settings like jump height, etc.,

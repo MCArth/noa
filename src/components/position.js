@@ -1,6 +1,4 @@
-
 import vec3 from 'gl-vec3'
-
 
 export default function (noa) {
 
