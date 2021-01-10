@@ -1,4 +1,3 @@
-
 import vec3 from 'gl-vec3'
 
 
