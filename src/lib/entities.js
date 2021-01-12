@@ -170,20 +170,9 @@ export class Entities extends ECS {
             'shadow': opts.shadowDistance,
         }
 
-        // Bundler magic to import everything in the ../components directory
-        // each component module exports a default function: (noa) => compDefinition
-        //@ts-expect-error
-        var reqContext = require.context('../components/', false, /\.js$/)
-        for (var name of reqContext.keys()) {
-            // convert name ('./foo.js') to bare name ('foo')
-            var bareName = /\.\/(.*)\.js/.exec(name)[1]
-            var arg = componentArgs[bareName] || undefined
-            var compFn = reqContext(name)
-            if (compFn.default) compFn = compFn.default
-            var compDef = compFn(noa, arg)
-            var comp = this.createComponent(compDef)
-            this.names[bareName] = comp
-        }
+export function Entities(noa, opts) {
+    // inherit from the ECS library
+    EntComp.call(this)
 
     this.noa = noa
     this.opts = Object.assign({}, defaults, opts)
