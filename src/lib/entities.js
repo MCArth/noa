@@ -307,7 +307,6 @@ Entities.prototype.createComponentsServer = function() {
         }
         this.names[comp] = comp
     }
-    console.log(this.names)
 }
 
 
