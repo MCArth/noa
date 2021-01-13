@@ -257,13 +257,22 @@ export class Entities extends ECS {
 
 
 
+export class Entities extends EntComp {
 
-
+    constructor(noa, opts) {
+        super()
+        this.noa = noa
+        this.opts = Object.assign({}, defaults, opts)
+    
+        // properties
+        /** Hash containing the component names of built-in components. */
+        this.names = {}
+    }
 }
 
 // inherit from EntComp
-Entities.prototype = Object.create(EntComp.prototype)
-Entities.prototype.constructor = Entities
+// Entities.prototype = Object.create(EntComp.prototype)
+// Entities.prototype.constructor = Entities
 
 /**
  * 
