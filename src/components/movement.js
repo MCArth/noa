@@ -92,12 +92,24 @@ function applyMovementPhysics(dt, state, body) {
     //   see https://github.com/andyhall/voxel-fps-controller
     //   for original code
 
+
     // jumping
     var onGround = (body.atRestY() < 0)
     var canjump = (onGround || state._jumpCount < state.airJumps)
     if (onGround) {
         state._isJumping = false
         state._jumpCount = 0
+    }
+
+    if (state.crouching) {
+        state.maxSpeed = 2
+    }
+    else if (state.running) {
+        state.maxSpeed = 7
+    }
+    else {
+        // just walking
+        state.maxSpeed = 4
     }
 
     // process jump input
@@ -124,7 +136,7 @@ function applyMovementPhysics(dt, state, body) {
     // apply movement forces if entity is moving, otherwise just friction
     var m = tempvec
     var push = tempvec2
-    if (state.running) {
+    if (state.moving) {
 
         var speed = state.maxSpeed
         // todo: add crouch/sprint modifiers if needed
@@ -158,7 +170,7 @@ function applyMovementPhysics(dt, state, body) {
 
         // different friction when not moving
         // idea from Sonic: http://info.sonicretro.org/SPG:Running
-        body.friction = state.runningFriction
+        body.friction = state.movingFriction
     } else {
         body.friction = state.standingFriction
     }
