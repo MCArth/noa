@@ -260,33 +260,24 @@ export class Engine extends EventEmitter {
     /**
      * The core Engine constructor uses the following options:
      * 
-     * ```js
-     * var defaultOptions = {
-     *    debug: false,
-     *    silent: false,
-     *    playerHeight: 1.8,
-     *    playerWidth: 0.6,
-     *    playerStart: [0, 10, 0],
-     *    playerAutoStep: false,
-     *    tickRate: 30,           // ticks per second
-     *    maxRenderRate: 0,       // max FPS, 0 for uncapped 
-     *    blockTestDistance: 10,
-     *    stickyPointerLock: true,
-     *    dragCameraOutsidePointerLock: true,
-     *    stickyFullscreen: false,
-     *    skipDefaultHighlighting: false,
-     *    originRebaseDistance: 25,
-     * }
-     * ```
-    */
-    constructor(opts = {}) {
-        super()
-        opts = Object.assign({}, defaultOptions, opts)
+     *     {
+     *        blockID,   // voxel ID
+     *        position,  // the (solid) block being targeted
+     *        adjacent,  // the (non-solid) block adjacent to the targeted one
+     *        normal,    // e.g. [0, 1, 0] when player is targting the top face of a voxel
+     *     }
+     */
+    this.targetedBlock = null
 
-        this.version = version
-        if (!opts.silent) {
-            var debugstr = (opts.debug) ? ' (debug)' : ''
-            console.log(`noa-engine v${this.version}${debugstr}`)
+    // add a default block highlighting function
+    if (!opts.skipDefaultHighlighting) {
+        // the default listener, defined onto noa in case people want to remove it later
+        this.defaultBlockHighlightFunction = (tgt) => {
+            if (!tgt || (this.serverSettings && this.serverSettings.breakBlocks === false)) {
+                self.rendering.highlightBlockFace(false)
+            } else {
+                self.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
+            }
         }
 
         // some basic setup
