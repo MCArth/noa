@@ -232,6 +232,37 @@ export class Camera {
      * 
     */
 
+/*
+ *  Called before render, if mouseLock etc. is applicable.
+ *  Consumes input mouse events x/y, updates camera angle and zoom
+ */
+
+Camera.prototype.applyInputsToCamera = function () {
+    // dx/dy from input state
+    var state = this.noa.inputs.state
+    console.debug(state.dx, state.dy)
+    bugFix(state) // TODO: REMOVE EVENTUALLY
+    bugFix2(state)
+
+    // convert to rads, using (sens * 0.0066 deg/pixel), like Overwatch
+    var conv = 0.0066 * Math.PI / 180
+    var dy = state.dy * this.sensitivityY * conv
+    var dx = state.dx * this.sensitivityX * conv
+    if (this.inverseY) dy = -dy
+    if (this.inverseX) dx = -dx
+
+    // normalize/clamp angles, update direction vector
+    var twopi = 2 * Math.PI
+    this.heading += (dx < 0) ? dx + twopi : dx
+    if (this.heading > twopi) this.heading -= twopi
+    var maxPitch = Math.PI / 2 - 0.001
+    this.pitch = Math.max(-maxPitch, Math.min(maxPitch, this.pitch + dy))
+
+    vec3.set(this._dirVector, 0, 0, 1)
+    vec3.rotateX(this._dirVector, this._dirVector, origin, this.pitch)
+    vec3.rotateY(this._dirVector, this._dirVector, origin, this.heading)
+}
+var origin = vec3.create()
 
 
     /**
@@ -336,3 +367,16 @@ function bugFix(state) {
 
 var lastx = 0
 var lasty = 0
+
+function bugFix2(state) {
+    const newDx = state.dx
+    if (newDx > lx > 0 && newDx-lx > 150) {
+        state.dx = lx
+    }
+    else if (newDx < lx < 0 && newDx-lx < -150) {
+        state.dx = lx
+    }
+    lx = newDx
+}
+
+let lx = 0
