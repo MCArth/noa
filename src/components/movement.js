@@ -19,15 +19,12 @@ export default function (noa) {
         state: {
             // current state
             heading: 0, // radians
-            walking: false,
 
             moving: false, // whether player is moving at all
 
             running: false,
             crouching: false,
 
-
-            running: false,
             jumping: false,
             // fb: 0,
             // rl: 0,
@@ -41,10 +38,8 @@ export default function (noa) {
             standingFriction: 5,
 
             airMoveMult: 0.5,
-            jumpImpulse: 8,
             jumpForce: 0,
             jumpTime: 500, // ms
-            airJumps: 0,
 
             // internal state
             _jumpCount: 0,
@@ -62,7 +57,7 @@ export default function (noa) {
 
             states.forEach(state => {
                 var body = ents.getPhysicsBody(state.__id)
-                applyMovementPhysics(dt, state, body)
+                applyMovementPhysics(noa, dt, state, body)
             })
 
         }
@@ -77,7 +72,7 @@ var tempvec2 = vec3.create()
 var zeroVec = vec3.create()
 
 
-function applyMovementPhysics(dt, state, body) {
+function applyMovementPhysics(noa, dt, state, body) {
     // move implementation originally written as external module
     //   see https://github.com/andyhall/voxel-fps-controller
     //   for original code
@@ -85,21 +80,22 @@ function applyMovementPhysics(dt, state, body) {
 
     // jumping
     var onGround = (body.atRestY() < 0)
-    var canjump = (onGround || state._jumpCount < state.airJumps)
+    var canjump = (onGround || state._jumpCount < noa.serverSettings.airJumpCount)
     if (onGround) {
         state._isJumping = false
         state._jumpCount = 0
     }
 
+    const speedMultiplier = noa.serverSettings.speedMultiplier
     if (state.crouching) {
-        state.maxSpeed = 2
+        state.maxSpeed = noa.serverSettings.crouchingSpeed*speedMultiplier
     }
     else if (state.running) {
-        state.maxSpeed = 7
+        state.maxSpeed = noa.serverSettings.runningSpeed*speedMultiplier
     }
     else {
         // just walking
-        state.maxSpeed = 4
+        state.maxSpeed = noa.serverSettings.walkingSpeed*speedMultiplier
     }
 
     // process jump input
@@ -115,7 +111,7 @@ function applyMovementPhysics(dt, state, body) {
             state._isJumping = true
             if (!onGround) state._jumpCount++
             state._currjumptime = state.jumpTime
-            body.applyImpulse([0, state.jumpImpulse, 0])
+            body.applyImpulse([0, noa.serverSettings.jumpAmount, 0])
             // clear downward velocity on airjump
             if (!onGround && body.velocity[1] < 0) body.velocity[1] = 0
         }
