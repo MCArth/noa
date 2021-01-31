@@ -239,6 +239,7 @@ function Engine(opts) {
         this.on('targetBlockChanged', this.defaultBlockHighlightFunction)
     }
 
+    
     // expose constants, for HACKING™
     this._constants = constants
 
