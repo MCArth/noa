@@ -106,9 +106,6 @@ function Engine(opts) {
         console.log(`noa-engine v${this.version}${debugstr}`)
     }
 
-    // add item hotbar
-    //this._hotbar = opts.hotbar;
-
     // world origin offset, used throughout engine for origin rebasing
     this.worldOriginOffset = [0, 0, 0]
     this._originRebaseDistance = opts.originRebaseDistance
