@@ -420,11 +420,28 @@ Entities.prototype.assignFieldsAndHelpers = function (noa) {
             height: height
         })
 
-        // rigid body in physics simulator
-        if (doPhysics) {
-            // body = this.noa.physics.addBody(box)
-            this.addComponent(eid, this.names.physics)
-            var body = this.getPhysics(eid).body
+/** @param box */
+Entities.prototype.getEntitiesInAABB = function (box, withComponent) {
+    // extents to test against
+    var off = this.noa.worldOriginOffset
+    var testExtents = [
+        box.base[0] - off[0], box.base[1] - off[1], box.base[2] - off[2],
+        box.max[0] - off[0], box.max[1] - off[1], box.max[2] - off[2],
+    ]
+    // entity position state list
+    var entStates = (withComponent) ?
+        this.getStatesList(withComponent).map(state => {
+            return this.getPositionData(state.__id)
+        }) : this.getStatesList(this.names.position)
+    // run each test
+    var hits = []
+    entStates.forEach(state => {
+        if (extentsOverlap(testExtents, state._extents)) {
+            hits.push(state.__id)
+        }
+    })
+    return hits
+}
 
             // handler for physics engine to call on auto-step
             var smoothName = this.names.smoothCamera
