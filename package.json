@@ -3,7 +3,6 @@
     "version": "0.30.0",
     "description": "Experimental voxel game engine",
     "main": "src/index.js",
-    "type": "module",
     "files": [
         "/src",
         "/dist"

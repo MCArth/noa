@@ -1,34 +1,17 @@
+const updatePositionExtents = require('../components/position.js').updatePositionExtents
+const setPhysicsFromPosition = require('../components/physics.js').setPhysicsFromPosition
 
-import { updatePositionExtents } from '../components/position.js'
-import { setPhysicsFromPosition } from '../components/physics.js'
+const vec3 = require('gl-vec3')
+const EntComp = require('ent-comp')
 
-import vec3 from 'gl-vec3'
-import EntComp from 'ent-comp'
-// var EntComp = require('../../../../npm-modules/ent-comp')
+const movement = require('../components/movement.js')
+const physics = require('../components/physics.js')
+const position = require('../components/position.js')
 
-// import collideEntities from '../components/collideEntities.js'
-// import collideTerrain from '../components/collideTerrain.js'
-// import fadeOnZoom from '../components/fadeOnZoom.js'
-// import followsEntity from '../components/followsEntity.js'
-// import mesh from '../components/mesh.js'
-import movement from '../components/movement.js'
-import physics from '../components/physics.js'
-import position from '../components/position.js'
-// import receivesInputs from '../components/receivesInputs.js'
-// import shadow from '../components/shadow.js'
-// import smoothCamera from '../components/smoothCamera.js'
 const components = {
-    // 'collideEntities': {fn: collideEntities},
-    // 'collideTerrain': {fn: collideTerrain},
-    // 'fadeOnZoom': {fn: fadeOnZoom},
-    // 'followsEntity': {fn: followsEntity},
-    // 'mesh': {fn: mesh},
     'movement': {fn: movement, server: true},
     'physics': {fn: physics, server: true},
     'position': {fn: position, server: true},
-    // 'receivesInputs': {fn: receivesInputs},
-    // 'shadow': {fn: shadow},
-    // 'smoothCamera': {fn: smoothCamera},
     'receivesInputs': {},
     'shadow': {},
     'smoothCamera': {},
@@ -42,7 +25,13 @@ const components = {
 
 
 
-var defaultOptions = {
+exports.default = function (noa, opts) {
+    return new Entities(noa, opts)
+}
+
+
+
+var defaults = {
     shadowDistance: 10,
 }
 
@@ -170,7 +159,7 @@ export class Entities extends ECS {
             'shadow': opts.shadowDistance,
         }
 
-export class Entities extends EntComp {
+class Entities extends EntComp {
 
     constructor(noa, opts) {
         super()
@@ -183,6 +172,7 @@ export class Entities extends EntComp {
     }
 }
 
+exports.Entities = Entities
 // inherit from EntComp
 // Entities.prototype = Object.create(EntComp.prototype)
 // Entities.prototype.constructor = Entities
@@ -222,6 +212,9 @@ Entities.prototype.createComponentsServer = function() {
     }
     for (const comp in components) {
         if (components[comp].fn) {
+            if (components[comp].fn.default) {
+                components[comp].fn = components[comp].fn.default
+            }
             this.createComponent(components[comp].fn(this.noa, componentArgs[comp]))
         }
         else {
@@ -264,29 +257,24 @@ Entities.prototype.assignFieldsAndHelpers = function (noa) {
         return getPos(id)._localPosition
     }
 
-    /*
-     * 
-     * 
-     *      PUBLIC ENTITY STATE ACCESSORS
-     * 
-     * 
-    */
+    /** @param id */
+    this.getPosition = function (id) {
+        return getPos(id).position
+    }
 
+    /** @param id */
+    this._localSetPosition = function (id, pos) {
+        var posDat = getPos(id)
+        vec3.copy(posDat._localPosition, pos)
+        updateDerivedPositionData(id, posDat)
+    }
 
-    /** Set an entity's position, and update all derived state.
-     * 
-     * In general, always use this to set an entity's position unless
-     * you're familiar with engine internals.
-     * 
-     * ```js
-     * noa.ents.setPosition(playerEntity, [5, 6, 7])
-     * noa.ents.setPosition(playerEntity, 5, 6, 7)  // also works
-     * ```
-     * 
-     * @param {number} id
-     */
-    setPosition(id, pos, y = 0, z = 0) {
-        if (typeof pos === 'number') pos = [pos, y, z]
+    /** @param id, positionArr */
+    this.setPosition = (id, pos, _yarg, _zarg) => {
+        // check if called with "x, y, z" args
+        if (typeof pos === 'number') { 
+            pos = [pos, _yarg, _zarg]
+        }
         // convert to local and defer impl
         var loc = this.noa.globalToLocal(pos, null, [])
         this._localSetPosition(id, loc)

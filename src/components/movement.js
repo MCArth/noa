@@ -1,4 +1,5 @@
-import vec3 from 'gl-vec3'
+// import vec3 from 'gl-vec3'
+const vec3 = require('gl-vec3')
 
 /**
  * Movement component. State stores settings like jump height, etc.,
@@ -9,7 +10,7 @@ import vec3 from 'gl-vec3'
  * @internal
 */
 
-export default function (noa) {
+exports.default = function (noa) {
     return {
 
         name: 'movement',
