@@ -7,9 +7,11 @@ const EntComp = require('ent-comp')
 const movement = require('../components/movement.js')
 const physics = require('../components/physics.js')
 const position = require('../components/position.js')
+const moveState = require('../components/moveState.js')
 
 const components = {
     'movement': {fn: movement, server: true},
+    'moveState': {fn: moveState, server: true},
     'physics': {fn: physics, server: true},
     'position': {fn: position, server: true},
     'receivesInputs': {},
