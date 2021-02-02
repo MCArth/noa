@@ -18,19 +18,6 @@ exports.default = function (noa) {
         order: 30,
 
         state: {
-            // current state
-            heading: 0, // radians
-
-            moving: false, // whether player is moving at all
-
-            running: false,
-            crouching: false,
-
-            jumping: false,
-            // fb: 0,
-            // rl: 0,
-            // camHeading: 0,
-
             // options:
             maxSpeed: 4,
             moveForce: 50,
@@ -58,7 +45,8 @@ exports.default = function (noa) {
 
             states.forEach(state => {
                 var body = ents.getPhysicsBody(state.__id)
-                applyMovementPhysics(noa, dt, state, body)
+                const moveState = ents.getMoveState(state.__id)
+                applyMovementPhysics(noa, dt, state, moveState, body)
             })
 
         }
@@ -73,7 +61,7 @@ var tempvec2 = vec3.create()
 var zeroVec = vec3.create()
 
 
-function applyMovementPhysics(noa, dt, state, body) {
+function applyMovementPhysics(noa, dt, state, moveState, body) {
     // move implementation originally written as external module
     //   see https://github.com/andyhall/voxel-fps-controller
     //   for original code
@@ -88,10 +76,10 @@ function applyMovementPhysics(noa, dt, state, body) {
     }
 
     const speedMultiplier = noa.serverSettings.speedMultiplier
-    if (state.crouching) {
+    if (moveState.crouching) {
         state.maxSpeed = noa.serverSettings.crouchingSpeed*speedMultiplier
     }
-    else if (state.running) {
+    else if (moveState.running) {
         state.maxSpeed = noa.serverSettings.runningSpeed*speedMultiplier
     }
     else {
@@ -100,7 +88,7 @@ function applyMovementPhysics(noa, dt, state, body) {
     }
 
     // process jump input
-    if (state.jumping) {
+    if (moveState.jumping) {
         if (state._isJumping) { // continue previous jump
             if (state._currjumptime > 0) {
                 var jf = state.jumpForce
@@ -123,7 +111,7 @@ function applyMovementPhysics(noa, dt, state, body) {
     // apply movement forces if entity is moving, otherwise just friction
     var m = tempvec
     var push = tempvec2
-    if (state.moving) {
+    if (moveState.moving) {
 
         var speed = state.maxSpeed
         // todo: add crouch/sprint modifiers if needed
@@ -132,7 +120,7 @@ function applyMovementPhysics(noa, dt, state, body) {
         vec3.set(m, 0, 0, speed)
 
         // rotate move vector to entity's heading
-        vec3.rotateY(m, m, zeroVec, state.heading)
+        vec3.rotateY(m, m, zeroVec, moveState.heading)
 
         // push vector to achieve desired speed & dir
         // following code to adjust 2D velocity to desired amount is patterned on Quake: 

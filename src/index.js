@@ -196,6 +196,7 @@ function Engine(opts) {
     var moveOpts = {
         // airJumps: 1
     }
+    ents.addComponent(this.playerEntity, ents.names.moveState)
     ents.addComponent(this.playerEntity, ents.names.movement, moveOpts)
 
 
