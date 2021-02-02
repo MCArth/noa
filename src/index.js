@@ -236,6 +236,7 @@ export class Engine extends EventEmitter {
     var moveOpts = {
         // airJumps: 1
     }
+    ents.addComponent(this.playerEntity, ents.names.moveState)
     ents.addComponent(this.playerEntity, ents.names.movement, moveOpts)
 
     /** `vec3` class used throughout the engine

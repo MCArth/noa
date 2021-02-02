@@ -24,7 +24,7 @@ export default function (noa) {
 
 
             noa.inputs.down.on('forward', () => {
-                const moveState = noa.ents.getMovement(eid)
+                const moveState = noa.ents.getMoveState(eid)
                 const inputState = noa.inputs.state
 
 
@@ -53,9 +53,8 @@ export default function (noa) {
             var inputState = noa.inputs.state
             var camHeading = noa.camera.heading
 
-            for (var i = 0; i < states.length; i++) {
-                var state = states[i]
-                var moveState = ents.getMovement(state.__id)
+            states.forEach(state => {
+                var moveState = ents.getMoveState(state.__id)
                 setMovementState(moveState, inputState, camHeading)
             })
         },

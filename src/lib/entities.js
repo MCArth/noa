@@ -340,6 +340,12 @@ Entities.prototype.assignFieldsAndHelpers = function (noa) {
 
 
 
+    // misc
+    this.getMeshData = this.getStateAccessor(this.names.mesh)
+    this.getMovement = this.getStateAccessor(this.names.movement)
+    this.getMoveState = this.getStateAccessor(this.names.moveState)
+    this.getCollideTerrain = this.getStateAccessor(this.names.collideTerrain)
+    this.getCollideEntities = this.getStateAccessor(this.names.collideEntities)
 
 
     /** 
