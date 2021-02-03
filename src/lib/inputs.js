@@ -46,7 +46,7 @@ document.onkeydown = function (e) {
         case 220: 
         case 83://Block Ctrl+S
         case 87://Block Ctrl+W -- Not work in Chrome and new Firefox
-            console.log("yee")
+        case 68: // block Ctrl+D
             e.preventDefault()
             e.stopPropagation()
             break;

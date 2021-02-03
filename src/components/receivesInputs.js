@@ -16,6 +16,8 @@ export default function (noa) {
 
         state: {
             doublePressRunInterval: 500,
+            joystickHeading: null,
+            isTouchscreen: false,
 
             _lastForwardPress: null
         },
@@ -55,7 +57,15 @@ export default function (noa) {
 
             states.forEach(state => {
                 var moveState = ents.getMoveState(state.__id)
-                setMovementState(moveState, inputState, camHeading)
+
+                if (state.isTouchscreen) {
+                    // update rotation - running, etc update is done from react
+                    moveState.heading = (noa.camera.heading+(Math.PI*2)-(state.joystickHeading+3*Math.PI/2))%(Math.PI*2)
+                }
+                else {
+                    // player on pc
+                    setMovementState(moveState, inputState, camHeading)
+                }
             })
         },
 
@@ -68,7 +78,11 @@ export default function (noa) {
     }
 }
 
-export function setMovementState(state, inputs, camHeading) {
+function setMovementStateMobile(state, camHeading) {
+
+}
+
+function setMovementState(state, inputs, camHeading) {
     state.jumping = !!inputs.jump
 
     // var fb = state.fb = inputs.forward ? (inputs.backward ? 0 : 1) : (inputs.backward ? -1 : 0)
@@ -98,7 +112,7 @@ export function setMovementState(state, inputs, camHeading) {
     } else {
         state.moving = true
         if (fb) {
-            if (fb == -1) camHeading += Math.PI
+            if (fb === -1) camHeading += Math.PI
             if (rl) {
                 camHeading += Math.PI / 4 * fb * rl // didn't plan this but it works!
             }
