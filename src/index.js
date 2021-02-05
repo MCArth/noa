@@ -423,7 +423,7 @@ Engine.prototype.tick = function () {
         st.scrollx = st.scrolly = st.scrollz = 0
     }
     catch(e) {
-        this.GA("addErrorEvent", "Error", "Error in noa tick\n", e, "\n", e.stack)
+        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, "Error in noa tick\n", e, "\n", e.stack)
     }
 }
 
