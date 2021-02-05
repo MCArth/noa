@@ -394,8 +394,38 @@ export class Engine extends EventEmitter {
 
 
 
-        // temp hacks for development
-        if (opts.debug) {
+Engine.prototype.tick = function () {
+    try {
+        if (this._paused) return
+        profile_hook('start')
+        checkWorldOffset(this)
+        var dt = this._tickRate // fixed timesteps!
+        this.world.tick(dt) // chunk creation/removal
+        profile_hook('world')
+        if (!this.world.playerChunkLoaded) {
+            // when waiting on worldgen, just tick the meshing queue and exit
+            this.rendering.tick(dt)
+            return
+        }
+        this.physics.tick(dt) // iterates physics
+        profile_hook('physics')
+        this.rendering.tick(dt) // does deferred chunk meshing
+        profile_hook('rendering')
+        updateBlockTargets(this) // finds targeted blocks, and highlights one if needed
+        profile_hook('targets')
+        this.entities.tick(dt) // runs all entity systems
+        profile_hook('entities')
+        this.emit('tick', dt)
+        profile_hook('tick event')
+        profile_hook('end')
+        // clear accumulated scroll inputs (mouseMove is cleared on render)
+        var st = this.inputs.state
+        st.scrollx = st.scrolly = st.scrollz = 0
+    }
+    catch(e) {
+        this.GA("addErrorEvent", "Error", "Error in noa tick\n", e, "\n", e.stack)
+    }
+}
 
             // expose often-used classes
             this.vec3 = vec3
