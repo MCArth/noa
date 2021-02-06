@@ -64,7 +64,7 @@ export default function (noa) {
                 }
                 else {
                     // player on pc
-                    setMovementState(moveState, inputState, camHeading)
+                    setMovementState(noa.serverSettings, moveState, inputState, camHeading)
                 }
             })
         },
@@ -78,7 +78,7 @@ export default function (noa) {
     }
 }
 
-function setMovementState(state, inputs, camHeading) {
+function setMovementState(serverSettings, state, inputs, camHeading) {
     state.jumping = !!inputs.jump
 
     // var fb = state.fb = inputs.forward ? (inputs.backward ? 0 : 1) : (inputs.backward ? -1 : 0)
@@ -97,6 +97,7 @@ function setMovementState(state, inputs, camHeading) {
     if ((fb | rl) === 0) {
         state.moving = false
         state.running = false
+        state.speed = 0
     } else {
         state.moving = true
 
@@ -104,6 +105,20 @@ function setMovementState(state, inputs, camHeading) {
         if (inputs.sprint) {
             state.running = true
         }
+
+        // states have been set, set maxSpeed
+        const speedMultiplier = serverSettings.speedMultiplier
+        if (state.crouching) {
+            state.speed = serverSettings.crouchingSpeed*speedMultiplier
+        }
+        else if (state.running) {
+            state.speed = serverSettings.runningSpeed*speedMultiplier
+        }
+        else {
+            // just walking
+            state.speed = serverSettings.walkingSpeed*speedMultiplier
+        }
+
 
         if (fb) {
             if (fb === -1) camHeading += Math.PI
