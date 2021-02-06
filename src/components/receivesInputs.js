@@ -19,6 +19,8 @@ export default function (noa) {
             joystickHeading: null,
             isTouchscreen: false,
 
+            _moving: false, // whether player is moving at all. Only relevant for keyboard input.
+            _running: false, // whether player is running. Only relevant for keyboard input.
             _lastForwardPress: null
         },
 
@@ -64,7 +66,7 @@ export default function (noa) {
                 }
                 else {
                     // player on pc
-                    setMovementState(noa.serverSettings, moveState, inputState, camHeading)
+                    setMovementState(noa.serverSettings, moveState, inputState, state, camHeading)
                 }
             })
         },
@@ -78,7 +80,7 @@ export default function (noa) {
     }
 }
 
-function setMovementState(serverSettings, state, inputs, camHeading) {
+function setMovementState(serverSettings, state, inputs, keyboardMoverState, camHeading) {
     state.jumping = !!inputs.jump
 
     // var fb = state.fb = inputs.forward ? (inputs.backward ? 0 : 1) : (inputs.backward ? -1 : 0)
@@ -95,15 +97,15 @@ function setMovementState(serverSettings, state, inputs, camHeading) {
     }
 
     if ((fb | rl) === 0) {
-        state.moving = false
-        state.running = false
+        keyboardMoverState._moving = false
+        keyboardMoverState._running = false
         state.speed = 0
     } else {
-        state.moving = true
+        keyboardMoverState._moving = true
 
         // pressing shift so start running
         if (inputs.sprint) {
-            state.running = true
+            keyboardMoverState._running = true
         }
 
         // states have been set, set maxSpeed
@@ -111,7 +113,7 @@ function setMovementState(serverSettings, state, inputs, camHeading) {
         if (state.crouching) {
             state.speed = serverSettings.crouchingSpeed*speedMultiplier
         }
-        else if (state.running) {
+        else if (keyboardMoverState._running) {
             state.speed = serverSettings.runningSpeed*speedMultiplier
         }
         else {
