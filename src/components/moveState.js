@@ -20,7 +20,6 @@ exports.default = function (noa) {
         state: {
             // current state
             heading: 0, // radians
-            moving: false, // whether player is moving at all
             crouching: false,
             speed: 0, // the speed the player would be moving at if no modifiers were applied
             jumping: false,

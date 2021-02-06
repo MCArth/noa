@@ -99,7 +99,7 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
     // apply movement forces if entity is moving, otherwise just friction
     var m = tempvec
     var push = tempvec2
-    if (moveState.moving) {
+    if (moveState.speed) {
         var speed = moveState.speed
 
         vec3.set(m, 0, 0, speed)
