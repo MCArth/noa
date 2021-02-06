@@ -78,10 +78,6 @@ export default function (noa) {
     }
 }
 
-function setMovementStateMobile(state, camHeading) {
-
-}
-
 function setMovementState(state, inputs, camHeading) {
     state.jumping = !!inputs.jump
 
@@ -89,15 +85,6 @@ function setMovementState(state, inputs, camHeading) {
     // var rl = state.rl = inputs.right ? (inputs.left ? 0 : 1) : (inputs.left ? -1 : 0)
     var fb = inputs.forward ? (inputs.backward ? 0 : 1) : (inputs.backward ? -1 : 0)
     var rl = inputs.right ? (inputs.left ? 0 : 1) : (inputs.left ? -1 : 0)
-
-    // player not trying to move forward, so stop running
-    if (fb !== 1) {
-        state.running = false
-    }
-    // user is holding the sprint key
-    else if (fb === 1 && inputs.sprint) {
-        state.running = true
-    }
 
     // this is ok - you can be crouching and sprint at same time
     if (inputs.crouch) {
@@ -109,8 +96,15 @@ function setMovementState(state, inputs, camHeading) {
 
     if ((fb | rl) === 0) {
         state.moving = false
+        state.running = false
     } else {
         state.moving = true
+
+        // pressing shift so start running
+        if (inputs.sprint) {
+            state.running = true
+        }
+
         if (fb) {
             if (fb === -1) camHeading += Math.PI
             if (rl) {
