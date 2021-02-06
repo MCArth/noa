@@ -21,8 +21,8 @@ exports.default = function (noa) {
             // current state
             heading: 0, // radians
             moving: false, // whether player is moving at all
-            running: false,
             crouching: false,
+            speed: 0, // the speed the player would be moving at if no modifiers were applied
             jumping: false,
         },
 
