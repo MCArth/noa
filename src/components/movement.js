@@ -75,18 +75,6 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
         state._jumpCount = 0
     }
 
-    const speedMultiplier = noa.serverSettings.speedMultiplier
-    if (moveState.crouching) {
-        state.maxSpeed = noa.serverSettings.crouchingSpeed*speedMultiplier
-    }
-    else if (moveState.running) {
-        state.maxSpeed = noa.serverSettings.runningSpeed*speedMultiplier
-    }
-    else {
-        // just walking
-        state.maxSpeed = noa.serverSettings.walkingSpeed*speedMultiplier
-    }
-
     // process jump input
     if (moveState.jumping) {
         if (state._isJumping) { // continue previous jump
@@ -112,11 +100,8 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
     var m = tempvec
     var push = tempvec2
     if (moveState.moving) {
+        var speed = moveState.speed
 
-        var speed = state.maxSpeed
-        // todo: add crouch/sprint modifiers if needed
-        // if (state.sprint) speed *= state.sprintMoveMult
-        // if (state.crouch) speed *= state.crouchMoveMult
         vec3.set(m, 0, 0, speed)
 
         // rotate move vector to entity's heading
