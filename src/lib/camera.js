@@ -194,7 +194,7 @@ Camera.prototype.getDirection = function () {
 Camera.prototype.applyInputsToCamera = function () {
     // dx/dy from input state
     var state = this.noa.inputs.state
-    console.debug(state.dx, state.dy)
+    // console.debug(state.dx, state.dy)
     bugFix(state) // TODO: REMOVE EVENTUALLY
     bugFix2(state)
 
