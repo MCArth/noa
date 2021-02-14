@@ -300,7 +300,7 @@ Engine.prototype.tick = function () {
         profile_hook('physics')
         this.rendering.tick(dt) // does deferred chunk meshing
         profile_hook('rendering')
-        updateBlockTargets(this) // finds targeted blocks, and highlights one if needed
+        this.updateBlockTargets() // finds targeted blocks, and highlights one if needed
         profile_hook('targets')
         this.entities.tick(dt) // runs all entity systems
         profile_hook('entities')
@@ -586,24 +586,28 @@ var _hitResult = {
 
 // Each frame, by default pick along the player's view vector 
 // and tell rendering to highlight the struck block face
-function updateBlockTargets(noa) {
+Engine.prototype.updateBlockTargets = function () {
     var newhash = ''
-    var blockIdFn = noa.blockTargetIdCheck || noa.registry.getBlockSolidity
-    var result = noa._localPick(null, null, null, blockIdFn)
+    var blockIdFn = this.blockTargetIdCheck || this.registry.getBlockSolidity
+
+    let origin = this.actionOrigin // if undefined, _localPick will default to camera pos
+    let direction = this.actionDirection // if undefined, _localPick will default to camera direction
+
+    var result = this._localPick(origin, direction, null, blockIdFn)
     if (result) {
         var dat = _targetedBlockDat
         // pick stops just shy of voxel boundary, so floored pos is the adjacent voxel
         vec3.floor(dat.adjacent, result.position)
         vec3.copy(dat.normal, result.normal)
         vec3.sub(dat.position, dat.adjacent, dat.normal)
-        dat.blockID = noa.world.getBlockID(dat.position[0], dat.position[1], dat.position[2])
-        noa.targetedBlock = dat
+        dat.blockID = this.world.getBlockID(dat.position[0], dat.position[1], dat.position[2])
+        this.targetedBlock = dat
         newhash = dat.position.join('|') + dat.normal.join('|') + '|' + dat.blockID
     } else {
-        noa.targetedBlock = null
+        this.targetedBlock = null
     }
     if (newhash != _prevTargetHash) {
-        noa.emit('targetBlockChanged', noa.targetedBlock)
+        this.emit('targetBlockChanged', this.targetedBlock)
         _prevTargetHash = newhash
     }
 }
