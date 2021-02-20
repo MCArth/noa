@@ -109,6 +109,11 @@ export class World extends EventEmitter {
             this._coordsToChunkLocals = chunkCoordsToLocalsPowerOfTwo
         }
     }
+
+    this.canBreakBlockCoord = new Set()
+    this.canBreakBlockType = new Set()
+    this.cantBreakBlockCoord = new Set()
+    this.cantBreakBlockType = new Set()
 }
 
 
@@ -236,32 +241,44 @@ World.prototype.invalidateVoxelsInAABB = function (box) {
 }
 
 
-/** When manually controlling chunk loading, tells the engine that the 
- * chunk containing the specified (x,y,z) needs to be created and loaded.
- * > Note: has no effect when `noa.world.manuallyControlChunkLoading` is not set.
- * @param x, y, z
+/**
+ * Get whether the player is allowed to break a given block
+ * @param {*} pos 
  */
-World.prototype.manuallyLoadChunk = function (x, y, z) {
-    if (!this.manuallyControlChunkLoading) throw manualErr
-    var [i, j, k] = this._coordsToChunkIndexes(x, y, z)
-    this._chunksKnown.add(i, j, k)
-    this._chunksToRequest.add(i, j, k)
-}
+World.prototype.canBreakBlock = function (pos) {
+    const posId = pos.join('|')
 
-/** When manually controlling chunk loading, tells the engine that the 
- * chunk containing the specified (x,y,z) needs to be unloaded and disposed.
- * > Note: has no effect when `noa.world.manuallyControlChunkLoading` is not set.
- * @param x, y, z
- */
-World.prototype.manuallyUnloadChunk = function (x, y, z) {
-    if (!this.manuallyControlChunkLoading) throw manualErr
-    var [i, j, k] = this._coordsToChunkIndexes(x, y, z)
-    this._chunksToRemove.add(i, j, k)
-    this._chunksToMesh.remove(i, j, k)
-    this._chunksToRequest.remove(i, j, k)
-    this._chunksToMeshFirst.remove(i, j, k)
+    // if can't break then it must be explicitly allowed
+    if (!this.noa.serverSettings.canBreak) {
+        if (this.canBreakBlockCoord.has(posId)) {
+            return true
+        }
+        // we can explicitly disallow block positions so that the type doesn't return true
+        if (this.cantBreakBlockCoord.has(posId)) {
+            return false
+        }
+        if (this.canBreakBlockType.has(this.getBlockID(pos[0], pos[1], pos[2]))) {
+            return true
+        }
+        // default to false
+        return false
+    }
+    // can break - could be explicitly disallowed
+    else {
+        if (this.cantBreakBlockCoord.has(posId)) {
+            return false
+        }
+        // we can explicitly allow block positions so that the type doesn't return false
+        if (this.canBreakBlockCoord.has(posId)) {
+            return true
+        }
+        if (this.cantBreakBlockType.has(this.getBlockID(pos[0], pos[1], pos[2]))) {
+            return false
+        }
+        // default to true
+        return true
+    }
 }
-var manualErr = 'Set `noa.world.manuallyControlChunkLoading` if you need this API'
 
 
 

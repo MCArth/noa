@@ -120,7 +120,7 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
             var canPush = state.moveForce
             if (!onGround) canPush *= state.airMoveMult
 
-            // apply final force
+            // pushAmt is the max push amount
             var pushAmt = state.responsiveness * pushLen
             if (canPush > pushAmt) canPush = pushAmt
 
