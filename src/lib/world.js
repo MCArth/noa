@@ -77,6 +77,10 @@ function World(noa, opts) {
         this._worldCoordToChunkIndex = coord => (((coord % cs) + cs) % cs) | 0
     }
 
+    this.canBreakBlockCoord = new Set()
+    this.canBreakBlockType = new Set()
+    this.cantBreakBlockCoord = new Set()
+    this.cantBreakBlockType = new Set()
 }
 World.prototype = Object.create(EventEmitter.prototype)
 
@@ -200,7 +204,44 @@ World.prototype.invalidateVoxelsInAABB = function (box) {
 }
 
 
+/**
+ * Get whether the player is allowed to break a given block
+ * @param {*} pos 
+ */
+World.prototype.canBreakBlock = function (pos) {
+    const posId = pos.join('|')
 
+    // if can't break then it must be explicitly allowed
+    if (!this.noa.serverSettings.canBreak) {
+        if (this.canBreakBlockCoord.has(posId)) {
+            return true
+        }
+        // we can explicitly disallow block positions so that the type doesn't return true
+        if (this.cantBreakBlockCoord.has(posId)) {
+            return false
+        }
+        if (this.canBreakBlockType.has(this.getBlockID(pos[0], pos[1], pos[2]))) {
+            return true
+        }
+        // default to false
+        return false
+    }
+    // can break - could be explicitly disallowed
+    else {
+        if (this.cantBreakBlockCoord.has(posId)) {
+            return false
+        }
+        // we can explicitly allow block positions so that the type doesn't return false
+        if (this.canBreakBlockCoord.has(posId)) {
+            return true
+        }
+        if (this.cantBreakBlockType.has(this.getBlockID(pos[0], pos[1], pos[2]))) {
+            return false
+        }
+        // default to true
+        return true
+    }
+}
 
 
 
