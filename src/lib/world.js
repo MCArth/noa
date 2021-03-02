@@ -77,10 +77,13 @@ function World(noa, opts) {
         this._worldCoordToChunkIndex = coord => (((coord % cs) + cs) % cs) | 0
     }
 
-    this.canBreakBlockCoord = new Set()
-    this.canBreakBlockType = new Set()
-    this.cantBreakBlockCoord = new Set()
-    this.cantBreakBlockType = new Set()
+    // can Change permissions
+    this.canChangeBlockCoord = new Set()
+    this.canChangeBlockType = new Set()
+    this.canChangeBlockRect = []
+    this.cantChangeBlockCoord = new Set()
+    this.cantChangeBlockType = new Set()
+    this.cantChangeBlockRect = []
 }
 World.prototype = Object.create(EventEmitter.prototype)
 
@@ -204,42 +207,45 @@ World.prototype.invalidateVoxelsInAABB = function (box) {
 }
 
 
+function posWithinRect(pos, [lx, ly, lz, hx, hy, hz]) {
+    return pos[0] >= lx && pos[1] >= ly && pos[2] >= lz && pos[0] <= hx && pos[1] <= hy && pos[2] <= hz
+}
+
+function posSatisfiesModifyConstraints(noaWorld, pos, coordSet, oppCoordSet, typeSet, oppTypeSet, rectList, defaultReturn) {
+    const posId = pos.join('|')
+    if (coordSet.has(posId)) {
+        return defaultReturn
+    }
+    if (oppCoordSet.has(posId)) {
+        return !defaultReturn
+    }
+    if (typeSet.has(noaWorld.getBlockID(pos[0], pos[1], pos[2]))) {
+        return defaultReturn
+    }
+    if (oppTypeSet.has(noaWorld.getBlockID(pos[0], pos[1], pos[2]))) {
+        return !defaultReturn
+    }
+    for (const rect of rectList) {
+        if (posWithinRect(pos, rect)) {
+            return defaultReturn
+        }
+    }
+
+    return !defaultReturn
+}
+
 /**
- * Get whether the player is allowed to break a given block
+ * Get whether the player is allowed to Change a given block
  * @param {*} pos 
  */
-World.prototype.canBreakBlock = function (pos) {
-    const posId = pos.join('|')
-
-    // if can't break then it must be explicitly allowed
-    if (!this.noa.serverSettings.canBreak) {
-        if (this.canBreakBlockCoord.has(posId)) {
-            return true
-        }
-        // we can explicitly disallow block positions so that the type doesn't return true
-        if (this.cantBreakBlockCoord.has(posId)) {
-            return false
-        }
-        if (this.canBreakBlockType.has(this.getBlockID(pos[0], pos[1], pos[2]))) {
-            return true
-        }
-        // default to false
-        return false
+World.prototype.canChangeBlock = function (pos) {
+    // if can't Change then it must be explicitly allowed
+    if (!this.noa.serverSettings.canChange) {
+        return posSatisfiesModifyConstraints(this, pos, this.canChangeBlockCoord, this.cantChangeBlockCoord, this.canChangeBlockType, this.cantChangeBlockType, this.canChangeBlockRect, true)
     }
-    // can break - could be explicitly disallowed
+    // can Change - could be explicitly disallowed
     else {
-        if (this.cantBreakBlockCoord.has(posId)) {
-            return false
-        }
-        // we can explicitly allow block positions so that the type doesn't return false
-        if (this.canBreakBlockCoord.has(posId)) {
-            return true
-        }
-        if (this.cantBreakBlockType.has(this.getBlockID(pos[0], pos[1], pos[2]))) {
-            return false
-        }
-        // default to true
-        return true
+        return posSatisfiesModifyConstraints(this, pos, this.cantChangeBlockCoord, this.canChangeBlockCoord, this.cantChangeBlockType, this.canChangeBlockType, this.cantChangeBlockRect, false)
     }
 }
 
