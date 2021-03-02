@@ -272,7 +272,7 @@ export class Engine extends EventEmitter {
     if (!opts.skipDefaultHighlighting) {
         // the default listener, defined onto noa in case people want to remove it later
         this.defaultBlockHighlightFunction = (tgt) => {
-            if (!tgt || (!this.serverSettings.canBuild && !this.world.canBreakBlock(tgt.position))) {
+            if (!tgt || (!this.serverSettings.canChange && !this.world.canChangeBlock(tgt.position))) {
                 self.rendering.highlightBlockFace(false)
             } else {
                 self.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
@@ -424,7 +424,7 @@ Engine.prototype.tick = function () {
     }
     catch(e) {
         console.error(e, e.stack)
-        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, "Error in noa tick\n", e, "\n", e.stack)
+        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa tick\n ${e} "\n" ${e.stack}`)
     }
 }
 
