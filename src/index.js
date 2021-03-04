@@ -313,7 +313,7 @@ Engine.prototype.tick = function () {
     }
     catch(e) {
         console.error(e, e.stack)
-        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa tick\n ${e} "\n" ${e.stack}`)
+        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa tickloop\n ${e} "\n" ${e.stack}`)
     }
 }
 
@@ -327,40 +327,46 @@ Engine.prototype.tick = function () {
  */
 
 Engine.prototype.render = function (framePart) {
-    if (this._paused) return
-    profile_hook_render('start')
-    // update frame position property and calc dt
-    var framesAdvanced = framePart - this.positionInCurrentTick
-    if (framesAdvanced < 0) framesAdvanced += 1
-    this.positionInCurrentTick = framePart
-    var dt = framesAdvanced * this._tickRate // ms since last tick
-    // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
-    if (this.container.hasPointerLock ||
-        !this.container.supportsPointerLock ||
-        (this._dragOutsideLock && this.inputs.state.fire)) {
-        this.camera.applyInputsToCamera()
+    try {
+        if (this._paused) return
+        profile_hook_render('start')
+        // update frame position property and calc dt
+        var framesAdvanced = framePart - this.positionInCurrentTick
+        if (framesAdvanced < 0) framesAdvanced += 1
+        this.positionInCurrentTick = framePart
+        var dt = framesAdvanced * this._tickRate // ms since last tick
+        // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
+        if (this.container.hasPointerLock ||
+            !this.container.supportsPointerLock ||
+            (this._dragOutsideLock && this.inputs.state.fire)) {
+            this.camera.applyInputsToCamera()
+        }
+        profile_hook('init')
+
+        // entity render systems
+        this.camera.updateBeforeEntityRenderSystems()
+        this.entities.render(dt)
+        this.camera.updateAfterEntityRenderSystems()
+        profile_hook('entities')
+
+        // events and render
+        this.emit('beforeRender', dt)
+        profile_hook_render('before render')
+
+        this.rendering.render(dt)
+        profile_hook_render('render')
+
+        this.emit('afterRender', dt)
+        profile_hook_render('after render')
+        profile_hook_render('end')
+
+        // clear accumulated mouseMove inputs (scroll inputs cleared on render)
+        this.inputs.state.dx = this.inputs.state.dy = 0
     }
-    profile_hook('init')
-
-    // entity render systems
-    this.camera.updateBeforeEntityRenderSystems()
-    this.entities.render(dt)
-    this.camera.updateAfterEntityRenderSystems()
-    profile_hook('entities')
-
-    // events and render
-    this.emit('beforeRender', dt)
-    profile_hook_render('before render')
-
-    this.rendering.render(dt)
-    profile_hook_render('render')
-
-    this.emit('afterRender', dt)
-    profile_hook_render('after render')
-    profile_hook_render('end')
-
-    // clear accumulated mouseMove inputs (scroll inputs cleared on render)
-    this.inputs.state.dx = this.inputs.state.dy = 0
+    catch(e) {
+        console.error(e, e.stack)
+        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa renderloop\n ${e} "\n" ${e.stack}`)
+    }
 }
 
 
