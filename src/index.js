@@ -424,7 +424,7 @@ Engine.prototype.tick = function () {
     }
     catch(e) {
         console.error(e, e.stack)
-        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa tick\n ${e} "\n" ${e.stack}`)
+        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa tickloop\n ${e} "\n" ${e.stack}`)
     }
 }
 
@@ -455,68 +455,48 @@ Engine.prototype.tick = function () {
      *
     */
 
-    /**
-     * Tick function, called by container module at a fixed timestep. 
-     * Clients should not normally need to call this manually.
-     * @internal
-    */
-
-    tick(dt) {
-        // note dt is a fixed value, not an observed delay
-        if (this._paused) {
-            if (this.world.worldGenWhilePaused) this.world.tick()
-            return
-        }
-        profile_hook('start')
-        checkWorldOffset(this)
-        this.world.tick() // chunk creation/removal
-        profile_hook('world')
-        if (!this.world.playerChunkLoaded) {
-            // when waiting on worldgen, just tick the meshing queue and exit
-            this.rendering.tick(dt)
-            return
-        }
-        this.physics.tick(dt) // iterates physics
-        profile_hook('physics')
-        this._objectMesher.tick() // rebuild objects if needed
-        this.rendering.tick(dt) // does deferred chunk meshing
-        profile_hook('rendering')
-        updateBlockTargets(this) // finds targeted blocks, and highlights one if needed
-        profile_hook('targets')
-        this.entities.tick(dt) // runs all entity systems
-        profile_hook('entities')
-        this.emit('tick', dt)
-        profile_hook('tick event')
-        profile_hook('end')
-        // clear accumulated scroll inputs (mouseMove is cleared on render)
-        var st = this.inputs.state
-        st.scrollx = st.scrolly = st.scrollz = 0
-    }
-
-
-
-
-    /**
-     * Render function, called every animation frame. Emits #beforeRender(dt), #afterRender(dt) 
-     * where dt is the time in ms *since the last tick*.
-     * Clients should not normally need to call this manually.
-     * @internal
-    */
-    render(dt, framePart) {
-        // note: framePart is how far we are into the current tick
-        // dt is the *actual* time (ms) since last render, for
-        // animating things that aren't tied to game tick rate
-
-        // frame position - for rendering movement between ticks
-        this.positionInCurrentTick = framePart
-
-        // when paused, just optionally ping worldgen, then exit
-        if (this._paused) {
-            if (this.world.worldGenWhilePaused) this.world.render()
-            return
-        }
-
+Engine.prototype.render = function (framePart) {
+    try {
+        if (this._paused) return
         profile_hook_render('start')
+        // update frame position property and calc dt
+        var framesAdvanced = framePart - this.positionInCurrentTick
+        if (framesAdvanced < 0) framesAdvanced += 1
+        this.positionInCurrentTick = framePart
+        var dt = framesAdvanced * this._tickRate // ms since last tick
+        // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
+        if (this.container.hasPointerLock ||
+            !this.container.supportsPointerLock ||
+            (this._dragOutsideLock && this.inputs.state.fire)) {
+            this.camera.applyInputsToCamera()
+        }
+        profile_hook('init')
+
+        // entity render systems
+        this.camera.updateBeforeEntityRenderSystems()
+        this.entities.render(dt)
+        this.camera.updateAfterEntityRenderSystems()
+        profile_hook('entities')
+
+        // events and render
+        this.emit('beforeRender', dt)
+        profile_hook_render('before render')
+
+        this.rendering.render(dt)
+        profile_hook_render('render')
+
+        this.emit('afterRender', dt)
+        profile_hook_render('after render')
+        profile_hook_render('end')
+
+        // clear accumulated mouseMove inputs (scroll inputs cleared on render)
+        this.inputs.state.dx = this.inputs.state.dy = 0
+    }
+    catch(e) {
+        console.error(e, e.stack)
+        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa renderloop\n ${e} "\n" ${e.stack}`)
+    }
+}
 
         // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
         if (this.container.hasPointerLock ||
