@@ -272,7 +272,7 @@ export class Engine extends EventEmitter {
     if (!opts.skipDefaultHighlighting) {
         // the default listener, defined onto noa in case people want to remove it later
         this.defaultBlockHighlightFunction = (tgt) => {
-            if (!tgt || (!this.serverSettings.canChange && !this.world.canChangeBlock(tgt.position))) {
+            if (!tgt || (!this.serverSettings.canChange && !this.world.canChangeBlock(tgt.position) && !this.world.canChangeBlock(tgt.adjacent))) {
                 self.rendering.highlightBlockFace(false)
             } else {
                 self.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
