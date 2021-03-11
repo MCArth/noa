@@ -423,8 +423,7 @@ Engine.prototype.tick = function () {
         st.scrollx = st.scrolly = st.scrollz = 0
     }
     catch(e) {
-        console.error(e, e.stack)
-        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa tickloop\n ${e} "\n" ${e.stack}`)
+        this.logErrorMessage("Error in noa tickloop", e)
     }
 }
 
@@ -493,8 +492,7 @@ Engine.prototype.render = function (framePart) {
         this.inputs.state.dx = this.inputs.state.dy = 0
     }
     catch(e) {
-        console.error(e, e.stack)
-        this.GA.addErrorEvent(this.gaENums.EGAErrorSeverity.Error, `Error in noa renderloop\n ${e} "\n" ${e.stack}`)
+        this.logErrorMessage("Error in noa renderloop", e)
     }
 }
 

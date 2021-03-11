@@ -117,6 +117,9 @@ export class World extends EventEmitter {
     this.cantChangeBlockCoord = new Set()
     this.cantChangeBlockType = new Set()
     this.cantChangeBlockRect = []
+
+    this.walkThroughType = new Set()
+    this.walkThroughRect = []
 }
 
 
@@ -146,11 +149,40 @@ World.prototype.getBlockID = function (x, y, z) {
 
 /** @param x,y,z */
 World.prototype.getBlockSolidity = function (x, y, z) {
-    var [ci, cj, ck] = this._coordsToChunkIndexes(x, y, z)
-    var chunk = this._storage.getChunkByIndexes(ci, cj, ck)
+    console.log(this)
+
+    var chunk = this._getChunkByCoords(x, y, z)
     if (!chunk) return false
-    var [i, j, k] = this._coordsToChunkLocals(x, y, z)
-    return !!chunk.getSolidityAt(i, j, k)
+
+
+    const id = chunk.get(
+        this._worldCoordToChunkIndex(x),
+        this._worldCoordToChunkIndex(y),
+        this._worldCoordToChunkIndex(z))
+    
+    if (id === 0) {
+        return false
+    }
+
+    if (this.walkThroughType.has(id)) {
+        return false
+    }
+
+    for (var rect of this.walkThroughRect) {
+        if (posWithinRect([x, y, z], rect)) {
+            return false
+        }
+    }
+
+    // check for fluid
+    if (!chunk.getSolidityAt(
+        this._worldCoordToChunkIndex(x),
+        this._worldCoordToChunkIndex(y),
+        this._worldCoordToChunkIndex(z))) {
+        return false
+    }
+
+    return true
 }
 
 /** @param x,y,z */
