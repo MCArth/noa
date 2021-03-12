@@ -149,8 +149,6 @@ World.prototype.getBlockID = function (x, y, z) {
 
 /** @param x,y,z */
 World.prototype.getBlockSolidity = function (x, y, z) {
-    console.log(this)
-
     var chunk = this._getChunkByCoords(x, y, z)
     if (!chunk) return false
 
