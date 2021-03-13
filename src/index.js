@@ -585,7 +585,30 @@ var _hitResult = {
 
 
 
+Engine.prototype.pickBlock = function (pos, vec, dist, blockIdTestFunction) {
+    var blockInfo = {
+        blockID: 0,
+        position: [],
+        normal: [],
+        adjacent: [],
+    }
+    var result = this.pick(pos, vec, dist, blockIdTestFunction)
+    if (result) {
+        pickResultIntoBlockInfo(this, result, blockInfo)
+        return blockInfo
+    }
+    else {
+        return null
+    }
+}
 
+function pickResultIntoBlockInfo(noa, pickResult, blockInfoObj) {
+    // pick stops just shy of voxel boundary, so floored pos is the adjacent voxel
+    vec3.floor(blockInfoObj.adjacent, pickResult.position)
+    vec3.copy(blockInfoObj.normal, pickResult.normal)
+    vec3.sub(blockInfoObj.position, blockInfoObj.adjacent, blockInfoObj.normal)
+    blockInfoObj.blockID = noa.world.getBlockID(blockInfoObj.position[0], blockInfoObj.position[1], blockInfoObj.position[2])
+}
 
 
 // Each frame, by default pick along the player's view vector 
@@ -600,11 +623,7 @@ Engine.prototype.updateBlockTargets = function () {
     var result = this._localPick(origin, direction, null, blockIdFn)
     if (result) {
         var dat = _targetedBlockDat
-        // pick stops just shy of voxel boundary, so floored pos is the adjacent voxel
-        vec3.floor(dat.adjacent, result.position)
-        vec3.copy(dat.normal, result.normal)
-        vec3.sub(dat.position, dat.adjacent, dat.normal)
-        dat.blockID = this.world.getBlockID(dat.position[0], dat.position[1], dat.position[2])
+        pickResultIntoBlockInfo(this, result, dat)
         this.targetedBlock = dat
         newhash = dat.position.join('|') + dat.normal.join('|') + '|' + dat.blockID
     } else {
