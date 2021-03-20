@@ -121,15 +121,15 @@ function setMovementState(serverSettings, state, inputs, keyboardMoverState, cam
             state.speed = serverSettings.walkingSpeed*speedMultiplier
         }
 
-
+        let movementHeading = camHeading
         if (fb) {
-            if (fb === -1) camHeading += Math.PI
+            if (fb === -1) movementHeading += Math.PI
             if (rl) {
-                camHeading += Math.PI / 4 * fb * rl // didn't plan this but it works!
+                movementHeading += Math.PI / 4 * fb * rl // didn't plan this but it works!
             }
         } else {
-            camHeading += rl * Math.PI / 2
+            movementHeading += rl * Math.PI / 2
         }
-        state.heading = camHeading
+        state.heading = movementHeading
     }
 }
