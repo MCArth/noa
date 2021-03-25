@@ -235,6 +235,15 @@ World.prototype.invalidateVoxelsInAABB = function (box) {
     invalidateChunksInBox(this, box)
 }
 
+/**
+ * Tell noa to re-request a chunk
+ * 
+ * @param {*} chunkId 
+ */
+World.prototype.invalidateChunk = function (chunkId) {
+    invalidateChunk(this, chunkId)
+}
+
 
 function posWithinRect(pos, [lx, ly, lz, hx, hy, hz]) {
     return pos[0] >= lx && pos[1] >= ly && pos[2] >= lz && pos[0] <= hx && pos[1] <= hy && pos[2] <= hz
@@ -444,7 +453,7 @@ function getPlayerChunkCoords(world) {
 
 
 function initChunkQueues(world) {
-    world._chunkIDsKnown = []       // all chunks existing in any queue
+    world._chunkIDsKnown = []       // all chunks existing in any queue // arthur comment: I think this it also contains all loaded chunks (and I can't see a list with those) but I may be wrong
     world._chunkIDsToRequest = []   // not yet requested from client
     world._chunkIDsPending = []     // requested, awaiting creation
     world._chunkIDsToMesh = []      // created but not yet meshed
@@ -514,6 +523,20 @@ function invalidateChunksInBox(world, box) {
         for (var i = 0; i < 3; i++) {
             if (pos[i] < min[i] || pos[i] > max[i]) return
         }
+        if (world._chunkIDsToRemove.includes(id)) return
+        enqueueID(id, world._chunkIDsToRequest)
+    })
+}
+
+function invalidateChunk(world, chunkId) {
+    const [x, y, z] = parseChunkID(chunkId)
+
+    world._chunkIDsKnown.forEach(id => {
+        var pos = parseChunkID(id)
+        if (pos[0] !== x || pos[1] !== y || pos[2] !== z) {
+            return
+        }
+
         if (world._chunkIDsToRemove.includes(id)) return
         enqueueID(id, world._chunkIDsToRequest)
     })
