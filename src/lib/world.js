@@ -273,6 +273,15 @@ World.prototype.invalidateVoxelsInAABB = function (box) {
     invalidateChunksInBox(this, box)
 }
 
+/**
+ * Tell noa to re-request a chunk
+ * 
+ * @param {*} chunkId 
+ */
+World.prototype.invalidateChunk = function (chunkId) {
+    invalidateChunk(this, chunkId)
+}
+
 
 function posWithinRect(pos, [lx, ly, lz, hx, hy, hz]) {
     return pos[0] >= lx && pos[1] >= ly && pos[2] >= lz && pos[0] <= hx && pos[1] <= hy && pos[2] <= hz
@@ -438,32 +447,16 @@ World.prototype._getChunkByCoords = function (x, y, z) {
 
 
 function initChunkQueues(world) {
-    // queue meanings:
-    //    Known:        all chunks existing in any queue
-    //    ToRequest:    needed but not yet requested from client
-    //    Pending:      requested, awaiting creation
-    //    ToMesh:       created but not yet meshed
-    //    ToMeshFirst:  priority meshing queue
-    //    ToRemove:     chunks awaiting disposal
-    world._chunksKnown = new LocationQueue()
-    world._chunksToMesh = new LocationQueue()
-    world._chunksPending = new LocationQueue()
-    world._chunksToRemove = new LocationQueue()
-    world._chunksToRequest = new LocationQueue()
-    world._chunksToMeshFirst = new LocationQueue()
-}
-
-// internal accessor chunks to queue themeselves for remeshing
-World.prototype._queueChunkForRemesh = function (chunk) {
-    possiblyQueueChunkForMeshing(this, chunk)
-}
-
-
-
-// helper - chunk indexes of where the player is
-function getPlayerChunkIndexes(world) {
-    var pos = world.noa.entities.getPosition(world.noa.playerEntity)
-    return world._coordsToChunkIndexes(pos[0], pos[1], pos[2])
+    world._chunkIDsKnown = []       // all chunks existing in any queue // arthur comment: I think this it also contains all loaded chunks (and I can't see a list with those) but I may be wrong
+    world._chunkIDsToRequest = []   // not yet requested from client
+    world._chunkIDsPending = []     // requested, awaiting creation
+    world._chunkIDsToMesh = []      // created but not yet meshed
+    world._chunkIDsToMeshFirst = [] // priority meshing queue
+    world._chunkIDsToRemove = []    // chunks awaiting disposal
+    // accessor for chunks to queue themselves for remeshing
+    world._queueChunkForRemesh = (chunk) => {
+        queueChunkForRemesh(world, chunk)
+    }
 }
 
 
@@ -553,6 +546,20 @@ function invalidateChunksInBox(world, box) {
         world._chunksToMesh.remove(loc[0], loc[1], loc[2])
         world._chunksToRequest.remove(loc[0], loc[1], loc[2])
         world._chunksToMeshFirst.remove(loc[0], loc[1], loc[2])
+    })
+}
+
+function invalidateChunk(world, chunkId) {
+    const [x, y, z] = parseChunkID(chunkId)
+
+    world._chunkIDsKnown.forEach(id => {
+        var pos = parseChunkID(id)
+        if (pos[0] !== x || pos[1] !== y || pos[2] !== z) {
+            return
+        }
+
+        if (world._chunkIDsToRemove.includes(id)) return
+        enqueueID(id, world._chunkIDsToRequest)
     })
 }
 
