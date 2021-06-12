@@ -19,7 +19,17 @@ export default function (noa) {
             // implicitly assume there's already a position component
             var posDat = noa.ents.getPositionData(eid)
             if (state.mesh) {
-                noa.rendering.addMeshToScene(state.mesh, false, posDat.position)
+                noa.rendering.addMeshToScene(
+                    state.mesh,
+                    false,
+                    posDat.position
+                );
+                // CHANGE ARTHUR START
+                // Adds descendant children to scene - a working variant of this may be needed in future
+                // for (let descendant of state.mesh.getDescendants()) {
+                //     noa.rendering.addMeshToScene(descendant, false);
+                // }
+                // CHANGE ARTHUR END
             } else {
                 throw new Error('Mesh component added without a mesh - probably a bug!')
             }
