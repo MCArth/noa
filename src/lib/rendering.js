@@ -6,6 +6,7 @@ import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera'
 import { Octree } from '@babylonjs/core/Culling/Octrees/octree'
 import { OctreeBlock } from '@babylonjs/core/Culling/Octrees/octreeBlock'
 import { Engine } from '@babylonjs/core/Engines/engine'
+import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
 import { Vector3, Color3 } from '@babylonjs/core/Maths/math'
@@ -90,9 +91,17 @@ function Rendering(noa, opts, canvas) {
 function initScene(self, canvas, opts) {
 
     // init internal properties
-    self._engine = new Engine(canvas, opts.antiAlias, {
-        preserveDrawingBuffer: opts.preserveDrawingBuffer,
-    })
+    if (process.env.REACT_APP_IS_CLIENT === 'true') {
+        self._engine = new Engine(canvas, opts.antiAlias, {
+            preserveDrawingBuffer: opts.preserveDrawingBuffer,
+        })
+    }
+    else {
+        self._engine = new NullEngine(canvas, opts.antiAlias, {
+            preserveDrawingBuffer: opts.preserveDrawingBuffer,
+        })
+    }
+
     self._scene = new Scene(self._engine)
     var scene = self._scene
     // remove built-in listeners
@@ -225,7 +234,7 @@ var hlpos = []
  * @param chunk: (optional) chunk to which the mesh is statically bound
  * @method
  */
-Rendering.prototype.addMeshToScene = function (mesh, isStatic, pos, _containingChunk) {
+Rendering.prototype.addMeshToScene = function (mesh, isStatic, pos, _containingChunk, isPickable=false) {
     // exit silently if mesh has already been added and not removed
     if (mesh._noaContainingChunk) return
     if (this._octree.dynamicContent.includes(mesh)) return
@@ -257,6 +266,8 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic, pos, _containingC
         mesh.freezeWorldMatrix()
         mesh.freezeNormals()
     }
+
+    mesh.isPickable = isPickable
 
     // add dispose event to undo everything done here
     var remover = this.removeMeshFromScene.bind(this, mesh)

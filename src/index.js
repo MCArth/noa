@@ -165,9 +165,6 @@ function Engine(opts) {
     this.ents = this.entities
     var ents = this.ents
 
-    ents.createComponentsClient()
-    ents.assignFieldsAndHelpers(this)
-
     /** Entity id for the player entity */
     this.playerEntity = ents.add(
         opts.playerStart, // starting location
@@ -196,7 +193,6 @@ function Engine(opts) {
     var moveOpts = {
         // airJumps: 1
     }
-    ents.addComponent(this.playerEntity, ents.names.moveState)
     ents.addComponent(this.playerEntity, ents.names.movement, moveOpts)
 
 
@@ -231,7 +227,14 @@ function Engine(opts) {
     if (!opts.skipDefaultHighlighting) {
         // the default listener, defined onto noa in case people want to remove it later
         this.defaultBlockHighlightFunction = (tgt) => {
-            if (!tgt || (!this.serverSettings.canChange && !this.world.canChangeBlock(tgt.position) && !this.world.canChangeBlock(tgt.adjacent))) {
+            if (!tgt
+                || (!this.serverSettings.canChange
+                    && !this.world.canChangeBlock(tgt.position)
+                    && !this.world.canChangeBlock(tgt.adjacent))
+                || (this.entities.hasComponent(this.playerEntity, 'heldItem')
+                    && this.entities.getState(this.playerEntity, 'heldItem').heldItem.canPlaceOrBreakBlock === false
+                )
+            ) {
                 self.rendering.highlightBlockFace(false)
             } else {
                 self.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
@@ -239,6 +242,10 @@ function Engine(opts) {
         }
         this.on('targetBlockChanged', this.defaultBlockHighlightFunction)
     }
+
+    // util references used on server
+    this.room = null
+    this.pluginApi = null
 
 
     // expose constants, for HACKING™
@@ -613,7 +620,7 @@ function pickResultIntoBlockInfo(noa, pickResult, blockInfoObj) {
 
 // Each frame, by default pick along the player's view vector 
 // and tell rendering to highlight the struck block face
-Engine.prototype.updateBlockTargets = function () {
+Engine.prototype.updateBlockTargets = function (forceHighlightUpdate=false) {
     var newhash = ''
     var blockIdFn = this.blockTargetIdCheck || this.registry.getBlockSolidity
 
@@ -629,7 +636,7 @@ Engine.prototype.updateBlockTargets = function () {
     } else {
         this.targetedBlock = null
     }
-    if (newhash != _prevTargetHash) {
+    if (newhash != _prevTargetHash || forceHighlightUpdate) {
         this.emit('targetBlockChanged', this.targetedBlock)
         _prevTargetHash = newhash
     }

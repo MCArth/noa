@@ -60,6 +60,14 @@ class Entities extends EntComp {
         // properties
         /** Hash containing the component names of built-in components. */
         this.names = {}
+
+        if (process.env.REACT_APP_IS_CLIENT === 'true') {
+            this.createComponentsClient()
+        }
+        else {
+            this.createComponentsServer()
+        }
+        this.assignFieldsAndHelpers(noa)
     }
 }
 

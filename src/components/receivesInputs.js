@@ -109,17 +109,20 @@ function setMovementState(serverSettings, state, inputs, keyboardMoverState, cam
         }
 
         // states have been set, set maxSpeed
-        const speedMultiplier = serverSettings.speedMultiplier
         if (state.crouching) {
-            state.speed = serverSettings.crouchingSpeed*speedMultiplier
+            state.speed = serverSettings.crouchingSpeed
         }
         else if (keyboardMoverState._running) {
-            state.speed = serverSettings.runningSpeed*speedMultiplier
+            state.speed = serverSettings.runningSpeed
         }
         else {
             // just walking
-            state.speed = serverSettings.walkingSpeed*speedMultiplier
+            state.speed = serverSettings.walkingSpeed
         }
+        state.speedMultiplier.setMultiplierType(
+            "serverSettingsSpeedMultiplier",
+            serverSettings.speedMultiplier
+        );
 
         let movementHeading = camHeading
         if (fb) {

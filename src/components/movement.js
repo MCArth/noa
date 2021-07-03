@@ -100,7 +100,7 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
     var m = tempvec
     var push = tempvec2
     if (moveState.speed) {
-        var speed = moveState.speed
+        var speed = moveState.speed*moveState.speedMultiplier.getTotalMultipliedVal()
 
         vec3.set(m, 0, 0, speed)
 

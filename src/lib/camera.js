@@ -116,6 +116,11 @@ function Camera(noa, opts) {
      * or when it's obstructed by solid terrain behind the player. */
     this.currentZoom = opts.initialZoom
 
+    this.onCurrentZoomChange = null
+    this.onCurrentZoomSetFromInternals = null
+    this.targetX = 0
+    this.targetY = 0
+
     // internals
     this._dirVector = vec3.fromValues(0, 1, 0)
 }
@@ -171,6 +176,14 @@ Camera.prototype.getDirection = function () {
     return this._dirVector
 }
 
+let previousZoom
+Camera.prototype.setZoomDistance = function (zoomDistance) {
+    previousZoom = this.zoomDistance
+    this.zoomDistance = zoomDistance
+    if (this.onCurrentZoomSetFromInternals) {
+        this.onCurrentZoomSetFromInternals(previousZoom, zoomDistance)
+    }
+}
 
 
 
@@ -226,13 +239,29 @@ var origin = vec3.create()
 
 Camera.prototype.updateBeforeEntityRenderSystems = function () {
     // zoom update
-    this.currentZoom += (this.zoomDistance - this.currentZoom) * this.zoomSpeed
+    const zoomMoveDist = (this.zoomDistance - this.currentZoom) * this.zoomSpeed
+    this.currentZoom += zoomMoveDist
+    if (zoomMoveDist !== 0 && this.onCurrentZoomChange) {
+        this.onCurrentZoomChange(this.currentZoom, this.currentZoom-zoomMoveDist)
+    }
 }
 
 Camera.prototype.updateAfterEntityRenderSystems = function () {
     // clamp camera zoom not to clip into solid terrain
-    var maxZoom = cameraObstructionDistance(this)
-    if (this.currentZoom > maxZoom) this.currentZoom = maxZoom
+    var maxZZoom = Math.max(cameraObstructionZDistance(this)-0.2, 0)
+    if (this.currentZoom > maxZZoom) this.currentZoom = maxZZoom
+
+    if (this.noa.rendering._camera.position.x || this.noa.rendering._camera.position.y) {
+        var maxYZoom = Math.max(cameraObstructionYDistance(this)-0.2, 0)
+        if (this.noa.rendering._camera.position.y > maxYZoom) {
+            this.noa.rendering._camera.position.y = maxYZoom
+        }
+
+        var maxXZoom = Math.max(cameraObstructionXDistance(this)-0.2, 0)
+        if (this.noa.rendering._camera.position.x > maxXZoom) {
+            this.noa.rendering._camera.position.x = maxXZoom
+        }
+    }
 }
 
 
@@ -244,7 +273,7 @@ Camera.prototype.updateAfterEntityRenderSystems = function () {
  *  check for obstructions behind camera by sweeping back an AABB
  */
 
-function cameraObstructionDistance(self) {
+function cameraObstructionZDistance(self) {
     if (!_camBox) {
         var off = self.noa.worldOriginOffset
         _camBox = new aabb([0, 0, 0], vec3.clone(_camBoxVec))
@@ -253,8 +282,31 @@ function cameraObstructionDistance(self) {
     }
     _camBox.setPosition(self._localGetTargetPosition())
     _camBox.translate(_camBoxVec)
-    var dist = Math.max(self.zoomDistance, self.currentZoom) + 0.1
+    var dist = Math.max(self.zoomDistance, self.currentZoom) + 0.5
     vec3.scale(_sweepVec, self.getDirection(), -dist)
+    return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)
+}
+
+// must be called after Z max distance and before X max distance (and Z max distance must have been applied)
+function cameraObstructionYDistance(self) {
+    _camBox.setPosition(self._localGetPosition())
+    _camBox.translate(_camBoxVec)
+    var dist = Math.max(self.targetY, self.noa.rendering._camera.position.y) + 0.5
+    const dir = findVectorToPointOnUnitSphere(self.heading, self.pitch+Math.PI/2)
+    vec3.scale(_sweepVec, dir, dist)
+    return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)
+}
+
+// must be called after Z and Y max distance (and Z+Y max distance must have been applied)
+function cameraObstructionXDistance(self) {
+    const position = self._localGetPosition()
+    const yDir = findVectorToPointOnUnitSphere(self.heading, self.pitch+Math.PI/2)
+    vec3.scaleAndAdd(position, position, yDir, self.noa.rendering._camera.position.y)
+    _camBox.setPosition(position)
+    _camBox.translate(_camBoxVec)
+    var dist = Math.max(self.targetX, self.noa.rendering._camera.position.x) + 0.5
+    const dir = findVectorToPointOnUnitSphere(self.heading-Math.PI/2, 0)
+    vec3.scale(_sweepVec, dir, dist)
     return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)
 }
 
@@ -264,6 +316,17 @@ var _camBox
 var _getVoxel
 var _hitFn = () => true
 
+// z is forward
+// theta is angle about horizontal (can use cam.heading)
+// phi is angle about vertical (can use cam.pitch)
+function findVectorToPointOnUnitSphere(theta, phi) {
+    phi = Math.PI/2-phi
+    theta = -theta
+    const x = Math.sin(phi)*Math.sin(theta)
+    const y = Math.cos(phi)
+    const z = Math.sin(phi)*Math.cos(theta)
+    return [x, y, -z]
+}
 
 
 
