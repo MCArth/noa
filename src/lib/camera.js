@@ -240,7 +240,7 @@ var origin = vec3.create()
 Camera.prototype.updateBeforeEntityRenderSystems = function () {
     // zoom update
     const zoomMoveDist = (this.zoomDistance - this.currentZoom) * this.zoomSpeed
-    if (zoomMoveDist < 0.0001) {
+    if (Math.abs(zoomMoveDist) < 0.0001) {
         this.currentZoom = this.zoomDistance
     }
     else {
