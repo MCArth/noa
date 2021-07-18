@@ -36,7 +36,7 @@ in the component definition. For example, if you define a component with a
 | `movement`        | `30` | applies physics forces based on `movement` state
 | `physics`         | `40` | update entity `_localPosition` from physics body
 | `followsEntity`   | `50` | move own `_localPosition` to match target
-| `position`        | `60` | update `position` and `extents` properties
+| `position`        | `41` | update `position` and `extents` properties
 | `collideEntities` | `70` | runs collision test, fires onCollide events
 | `shadow`          | `80` | update shadow's `y` position
 | `fadeOnZoom`      | `99` | checks camera zoom, hides or reveals entity

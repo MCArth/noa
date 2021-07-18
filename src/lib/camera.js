@@ -176,6 +176,16 @@ Camera.prototype.getDirection = function () {
     return this._dirVector
 }
 
+/**
+ * Returns the direction vector pointing up from the camera (up from top of player's head, for example)
+ */
+Camera.prototype.getUpDirection = function () {
+    return findVectorToPointOnUnitSphere(
+        this.heading,
+        this.pitch + Math.PI / 2
+    );
+}
+
 let previousZoom
 Camera.prototype.setZoomDistance = function (zoomDistance) {
     previousZoom = this.zoomDistance
@@ -297,7 +307,7 @@ function cameraObstructionYDistance(self) {
     _camBox.setPosition(self._localGetPosition())
     _camBox.translate(_camBoxVec)
     var dist = Math.max(self.targetY, self.noa.rendering._camera.position.y) + 0.5
-    const dir = findVectorToPointOnUnitSphere(self.heading, self.pitch+Math.PI/2)
+    var dir = self.getUpDirection()
     vec3.scale(_sweepVec, dir, dist)
     return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)
 }
