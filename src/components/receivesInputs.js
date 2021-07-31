@@ -61,7 +61,7 @@ export default function (noa) {
                 var moveState = ents.getMoveState(state.__id)
 
                 if (state.isTouchscreen) {
-                    // update rotation - running, etc update is done from react
+                    // update rotation - running, etc update is done from react component
                     moveState.heading = (noa.camera.heading+(Math.PI*2)-(state.joystickHeading+3*Math.PI/2))%(Math.PI*2)
                 }
                 else {

@@ -66,6 +66,9 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
     //   see https://github.com/andyhall/voxel-fps-controller
     //   for original code
 
+    if (!noa.entities.getState(state.__id, 'genericPlayerState').isAlive) {
+        return;
+    }
 
     // jumping
     var onGround = (body.atRestY() < 0)

@@ -173,8 +173,7 @@ function Engine(opts) {
         true, true
     )
 
-    // make player entity it collide with terrain and other entities
-    ents.addComponent(this.playerEntity, ents.names.collideTerrain)
+    // make player entity collide with other entities
     ents.addComponent(this.playerEntity, ents.names.collideEntities)
 
     // adjust default physics parameters
@@ -663,7 +662,7 @@ var _prevTargetHash = ''
 function deprecateStuff(noa) {
     var ver = `0.27`
     var dep = (loc, name, msg) => {
-        var throwFn = () => { throw `This property changed in ${ver} - ${msg}` }
+        var throwFn = () => { throw new Error(`This property changed in ${ver} - ${msg}`) }
         Object.defineProperty(loc, name, { get: throwFn, set: throwFn })
     }
     dep(noa, 'getPlayerEyePosition', 'to get the camera/player offset see API docs for `noa.camera.cameraTarget`')

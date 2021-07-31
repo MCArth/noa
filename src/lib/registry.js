@@ -115,7 +115,7 @@ function Registry(noa, opts) {
         var opts = Object.assign({}, blockDefaults, _options)
 
         // console.log('register block: ', id, opts)
-        if (id < 1 || id > MAX_BLOCK_IDS) throw 'Block id exceeds max: ' + id
+        if (id < 1 || id > MAX_BLOCK_IDS) throw new Error('Block id exceeds max: ' + id)
 
         // if block ID is greater than current highest ID, 
         // register fake blocks to avoid holes in lookup arrays
@@ -149,7 +149,7 @@ function Registry(noa, opts) {
         } else if (mat.length && mat.length == 6) {
             // interpret as [-x, +x, -y, +y, -z, +z]
             mats = mat
-        } else throw 'Invalid material parameter: ' + mat
+        } else throw new Error('Invalid material parameter: ' + mat)
 
         // argument is material name, but store as material id, allocating one if needed
         for (var i = 0; i < 6; ++i) {
