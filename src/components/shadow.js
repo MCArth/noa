@@ -38,6 +38,7 @@ export default function (noa, dist) {
             var mesh = disc.createInstance('shadow_instance')
             noa.rendering.addMeshToScene(mesh)
             state._mesh = mesh
+            mesh.setEnabled(false)
         },
 
 
