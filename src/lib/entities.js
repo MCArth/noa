@@ -218,6 +218,15 @@ Entities.prototype.assignFieldsAndHelpers = function (noa) {
     this.getCollideTerrain = this.getStateAccessor(this.names.collideTerrain)
     this.getCollideEntities = this.getStateAccessor(this.names.collideEntities)
 
+    // Bloxd accessors - set in bloxd code
+    this.getGenericPlayerState = null
+    this.getInventoryState = null
+    this.getInventory = null
+    this.getHeldItemState = null
+    this.getHeldItem = null
+    this.getPlayerMeshState = null
+    // bloxd
+
     // pairwise collideEntities event - this is for client to override
     this.onPairwiseEntityCollision = function (id1, id2) {}
 }
