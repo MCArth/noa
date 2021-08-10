@@ -116,10 +116,21 @@ function Camera(noa, opts) {
      * or when it's obstructed by solid terrain behind the player. */
     this.currentZoom = opts.initialZoom
 
+    // bloxd start
     this.onCurrentZoomChange = null
     this.onCurrentZoomSetFromInternals = null
+
     this.targetX = 0
     this.targetY = 0
+
+    this._targetKickback = 0
+    this._appliedKickback = 0
+    this._approachTargetKickbackRate = 0.15
+
+    this._kickbackDiffToApply = 0
+    this._kickbackDecreaseRate = 0
+    // this._kickbackIncreaseRate = 0
+    // bloxd end
 
     // internals
     this._dirVector = vec3.fromValues(0, 1, 0)
@@ -195,6 +206,18 @@ Camera.prototype.setZoomDistance = function (zoomDistance) {
     }
 }
 
+Camera.prototype.addKickback = function (kickback) {
+    this._targetKickback += kickback
+}
+
+// Camera.prototype.setKickbackIncreaseRate = function (increaseRate) {
+//     this._kickbackIncreaseRate = increaseRate
+// }
+
+Camera.prototype.setKickbackDecreaseRate = function (decreaseRate) {
+    this._kickbackDecreaseRate = decreaseRate
+}
+
 
 
 
@@ -228,6 +251,9 @@ Camera.prototype.applyInputsToCamera = function () {
     if (this.inverseY) dy = -dy
     if (this.inverseX) dx = -dx
 
+    dy -= this._kickbackDiffToApply
+    this._kickbackDiffToApply = 0
+
     // normalize/clamp angles, update direction vector
     var twopi = 2 * Math.PI
     this.heading += (dx < 0) ? dx + twopi : dx
@@ -258,6 +284,26 @@ Camera.prototype.updateBeforeEntityRenderSystems = function () {
     }
     if (zoomMoveDist !== 0 && this.onCurrentZoomChange) {
         this.onCurrentZoomChange(this.currentZoom, this.currentZoom-zoomMoveDist)
+    }
+
+    const targetKickbackChange = this._targetKickback*this._kickbackDecreaseRate
+
+    if (targetKickbackChange < 0.0001) {
+        this._targetKickback = 0
+        this._kickbackDiffToApply = -this._appliedKickback
+        this._appliedKickback = 0
+    }
+    else {
+        this._targetKickback -= targetKickbackChange
+    }
+
+    const actualKickbackChange = (this._targetKickback-this._appliedKickback)*this._approachTargetKickbackRate
+    if (Math.abs(actualKickbackChange) < 0.00001) {
+        this._appliedKickback = this._targetKickback
+    }
+    else {
+        this._kickbackDiffToApply += actualKickbackChange
+        this._appliedKickback += actualKickbackChange
     }
 }
 
