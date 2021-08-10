@@ -386,7 +386,7 @@ export function findVectorToPointOnUnitSphere(theta, phi) {
     const x = Math.sin(phi)*Math.sin(theta)
     const y = Math.cos(phi)
     const z = Math.sin(phi)*Math.cos(theta)
-    return vec3.fromValues(x, y, -z)
+    return [x, y, -z]
 }
 
 export function vectorToUnitSphereAngles(x, y, z) {
