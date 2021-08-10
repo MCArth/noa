@@ -334,16 +334,29 @@ var _hitFn = () => true
 // z is forward
 // theta is angle about horizontal (can use cam.heading)
 // phi is angle about vertical (can use cam.pitch)
-function findVectorToPointOnUnitSphere(theta, phi) {
+export function findVectorToPointOnUnitSphere(theta, phi) {
     phi = Math.PI/2-phi
     theta = -theta
     const x = Math.sin(phi)*Math.sin(theta)
     const y = Math.cos(phi)
     const z = Math.sin(phi)*Math.cos(theta)
-    return [x, y, -z]
+    return vec3.fromValues(x, y, -z)
 }
 
+export function vectorToUnitSphereAngles(x, y, z) {
+    if (x.length) {
+        y = x[1]
+        z = x[2]
+        x = x[0]
+    }
 
+    const theta = -Math.atan2(x, -z)
+
+    const horizMagnitude = ((x)**2+(z)**2)**(1/2)
+    const phi = Math.atan2(y, horizMagnitude)
+
+    return {theta, phi}
+}
 
 
 
