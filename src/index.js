@@ -242,9 +242,11 @@ function Engine(opts) {
         this.on('targetBlockChanged', this.defaultBlockHighlightFunction)
     }
 
+    // bloxd start
     // util references used on server
     this.room = null
     this.pluginApi = null
+    // bloxd end
 
 
     // expose constants, for HACKING™
@@ -349,7 +351,7 @@ Engine.prototype.render = function (framePart) {
         profile_hook('init')
 
         // entity render systems
-        this.camera.updateBeforeEntityRenderSystems()
+        this.camera.updateBeforeEntityRenderSystems(dt)
         this.entities.render(dt)
         this.camera.updateAfterEntityRenderSystems()
         profile_hook('entities')

@@ -125,7 +125,7 @@ function Camera(noa, opts) {
 
     this._targetKickback = 0
     this._appliedKickback = 0
-    this._approachTargetKickbackRate = 0.15
+    this._approachTargetKickbackRate = 0.009
 
     this._kickbackDiffToApply = 0
     this._kickbackDecreaseRate = 0
@@ -273,7 +273,7 @@ var origin = vec3.create()
  *  Called before all renders, pre- and post- entity render systems
  */
 
-Camera.prototype.updateBeforeEntityRenderSystems = function () {
+Camera.prototype.updateBeforeEntityRenderSystems = function (dt) {
     // zoom update
     const zoomMoveDist = (this.zoomDistance - this.currentZoom) * this.zoomSpeed
     if (Math.abs(zoomMoveDist) < 0.0001) {
@@ -286,8 +286,11 @@ Camera.prototype.updateBeforeEntityRenderSystems = function () {
         this.onCurrentZoomChange(this.currentZoom, this.currentZoom-zoomMoveDist)
     }
 
-    const targetKickbackChange = this._targetKickback*this._kickbackDecreaseRate
+    const targetKickbackChange = this._targetKickback*this._kickbackDecreaseRate*dt
 
+    console.log(dt, Date.now()-this._lastUpdateBeforeEntityRender)
+    this._lastUpdateBeforeEntityRender = Date.now()
+    
     if (targetKickbackChange < 0.0001) {
         this._targetKickback = 0
         this._kickbackDiffToApply = -this._appliedKickback
@@ -297,7 +300,7 @@ Camera.prototype.updateBeforeEntityRenderSystems = function () {
         this._targetKickback -= targetKickbackChange
     }
 
-    const actualKickbackChange = (this._targetKickback-this._appliedKickback)*this._approachTargetKickbackRate
+    const actualKickbackChange = (this._targetKickback-this._appliedKickback)*this._approachTargetKickbackRate*dt
     if (Math.abs(actualKickbackChange) < 0.00001) {
         this._appliedKickback = this._targetKickback
     }
