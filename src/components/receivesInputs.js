@@ -57,7 +57,8 @@ export default function (noa) {
             var inputState = noa.inputs.state
             var camHeading = noa.camera.heading
 
-            states.forEach(state => {
+            for (var i = 0; i < states.length; i++) {
+                var state = states[i]
                 var moveState = ents.getMoveState(state.__id)
 
                 if (state.isTouchscreen) {
@@ -68,17 +69,14 @@ export default function (noa) {
                     // player on pc
                     setMovementState(noa.serverSettings, moveState, inputState, state, camHeading)
                 }
-            })
+            }
         },
-
-        // renderSystem: function rotationProcessor(dt, states) {
-        //     for (const state of states) {
-        //         var moveState = noa.ents.getMovement(state.__id)
-        //         moveState.camHeading = noa.camera.heading
-        //     }
-        // }
     }
 }
+
+
+
+
 
 function setMovementState(serverSettings, state, inputs, keyboardMoverState, camHeading) {
     state.jumping = !!inputs.jump

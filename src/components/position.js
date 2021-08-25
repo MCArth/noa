@@ -1,4 +1,3 @@
-// import vec3 from 'gl-vec3'
 const vec3 = require('gl-vec3')
 
 exports.default = function (noa) {
@@ -30,8 +29,8 @@ exports.default = function (noa) {
 
         state: {
             position: null,
-            width: +1,
-            height: +1,
+            width: 0.8,
+            height: 0.8,
             _localPosition: null,
             _renderPosition: null,
             _extents: null,
@@ -60,10 +59,11 @@ exports.default = function (noa) {
 
         system: function (dt, states) {
             var off = noa.worldOriginOffset
-            states.forEach(state => {
+            for (var i = 0; i < states.length; i++) {
+                var state = states[i]
                 vec3.add(state.position, state._localPosition, off)
                 updatePositionExtents(state)
-            })
+            }
         },
 
 

@@ -1,5 +1,5 @@
 
-var vec3 = require('gl-vec3')
+import vec3 from 'gl-vec3'
 
 
 export default function (noa) {
@@ -36,7 +36,7 @@ export default function (noa) {
             } else {
                 throw new Error('Mesh component added without a mesh - probably a bug!')
             }
-            if (!state.offset) state.offset = new vec3.create()
+            if (!state.offset) state.offset = vec3.create()
 
             // set mesh to correct position
             var rpos = posDat._renderPosition
@@ -56,8 +56,8 @@ export default function (noa) {
         renderSystem: function (dt, states) {
             // before render move each mesh to its render position, 
             // set by the physics engine or driving logic
-
-            states.forEach(state => {
+            for (var i = 0; i < states.length; i++) {
+                var state = states[i]
                 var id = state.__id
 
                 var rpos = noa.ents.getPositionData(id)._renderPosition
@@ -65,7 +65,7 @@ export default function (noa) {
                     rpos[0] + state.offset[0],
                     rpos[1] + state.offset[1],
                     rpos[2] + state.offset[2])
-            })
+            }
         }
 
 
