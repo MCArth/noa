@@ -288,7 +288,6 @@ Camera.prototype.updateBeforeEntityRenderSystems = function (dt) {
 
     const targetKickbackChange = this._targetKickback*this._kickbackDecreaseRate*dt
 
-    console.log(dt, Date.now()-this._lastUpdateBeforeEntityRender)
     this._lastUpdateBeforeEntityRender = Date.now()
     
     if (targetKickbackChange < 0.0001) {
