@@ -491,8 +491,8 @@ var oldlasty = 0
 function bugFix2(state) {
     var dx = state.dx
     var dy = state.dy
-    var badx = (Math.abs(dx) > 400 && Math.abs(dx / lastx) > 4)
-    var bady = (Math.abs(dy) > 400 && Math.abs(dy / lasty) > 4)
+    var badx = (Math.abs(dx) > 100 && Math.abs(dx / lastx) > 4)
+    var bady = (Math.abs(dy) > 100 && Math.abs(dy / lasty) > 4)
     if (badx || bady) {
         state.dx = lastx
         state.dy = lasty
