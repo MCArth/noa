@@ -346,7 +346,10 @@ Rendering.prototype._rebaseOrigin = function (delta) {
 
     this._scene.meshes.forEach(mesh => {
         // parented meshes don't live in the world coord system
-        if (mesh.parent) return
+        // Skip __root__ nodes to work around a babylonjs issue where not fully loaded glb meshes exist in the meshes array and moving them breaks things. (Happens with gun meshes). 
+        if (mesh.parent || mesh.name === "__root__") {
+            return
+        }
 
         // move each mesh by delta (even though most are managed by components)
         mesh.position.subtractInPlace(dvec)
