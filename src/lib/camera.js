@@ -167,6 +167,7 @@ export class Camera {
         this._targetKickback = 0
         this._appliedKickback = 0
         this._approachTargetKickbackRate = 0.009
+        this._lastUpdateBeforeEntityRender = Date.now()
 
         this._kickbackDiffToApply = 0
         this._kickbackDecreaseRate = 0
@@ -327,8 +328,6 @@ export class Camera {
         }
 
         const targetKickbackChange = this._targetKickback*this._kickbackDecreaseRate*dt
-
-        this._lastUpdateBeforeEntityRender = Date.now()
         
         if (targetKickbackChange < 0.0001) {
             this._targetKickback = 0
@@ -339,7 +338,8 @@ export class Camera {
             this._targetKickback -= targetKickbackChange
         }
 
-        const actualKickbackChange = (this._targetKickback-this._appliedKickback)*this._approachTargetKickbackRate*dt
+        const now = Date.now()
+        const actualKickbackChange = (this._targetKickback-this._appliedKickback)*this._approachTargetKickbackRate*(now-this._lastUpdateBeforeEntityRender)
         if (Math.abs(actualKickbackChange) < 0.00001) {
             this._appliedKickback = this._targetKickback
         }
@@ -347,6 +347,8 @@ export class Camera {
             this._kickbackDiffToApply += actualKickbackChange
             this._appliedKickback += actualKickbackChange
         }
+
+        this._lastUpdateBeforeEntityRender = now
     }
 
     updateAfterEntityRenderSystems() {
