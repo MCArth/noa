@@ -1,39 +1,49 @@
-// import vec3 from 'gl-vec3'
 const vec3 = require('gl-vec3')
 
+
+
+
+
+/** 
+ * State object of the `movement` component
+ * @class
+*/
+export function MovementSettings() {
+    // options:
+    this.maxSpeed = 4
+    this.moveForce = 50
+    this.responsiveness = 10
+    this.movingFriction = 0
+    this.standingFriction = 5
+
+    this.airMoveMult = 0.5
+    this.jumpForce = 0
+    this.jumpTime = 500 // ms
+
+    // internal state
+    this._jumpCount = 0
+    this._currjumptime = 0
+    this._isJumping = false
+}
+
+
 /**
- * 
  * Movement component. State stores settings like jump height, etc.,
  * as well as current state (running, jumping, heading angle).
  * Processor checks state and applies movement/friction/jump forces
  * to the entity's physics body. 
- * 
- */
+ * @param {import('..').Engine} noa
+ * @internal
+*/
 
-exports.default = function (noa) {
+export default function (noa) {
     return {
 
         name: 'movement',
 
         order: 30,
 
-        state: {
-            // options:
-            maxSpeed: 4,
-            moveForce: 50,
-            responsiveness: 10,
-            movingFriction: 0,
-            standingFriction: 5,
-
-            airMoveMult: 0.5,
-            jumpForce: 0,
-            jumpTime: 500, // ms
-
-            // internal state
-            _jumpCount: 0,
-            _isJumping: 0,
-            _currjumptime: 0,
-        },
+        state: new MovementSettings(),
 
         onAdd: null,
 
@@ -43,12 +53,15 @@ exports.default = function (noa) {
         system: function movementProcessor(dt, states) {
             var ents = noa.entities
 
-            states.forEach(state => {
-                var body = ents.getPhysicsBody(state.__id)
-                const moveState = ents.getMoveState(state.__id)
-                applyMovementPhysics(noa, dt, state, moveState, body)
-            })
-
+            for (var i = 0; i < states.length; i++) {
+                var state = states[i]
+                var phys = ents.getPhysics(state.__id)
+                if (phys) {
+                    var body = ents.getPhysicsBody(state.__id)
+                    const moveState = ents.getMoveState(state.__id)
+                    applyMovementPhysics(noa, dt, state, moveState, body)
+                }
+            }
         }
 
 
@@ -61,11 +74,20 @@ var tempvec2 = vec3.create()
 var zeroVec = vec3.create()
 
 
+/**
+ * @internal
+ * @param {number} dt 
+ * @param {MovementSettings} state 
+ * @param {*} body 
+*/
 function applyMovementPhysics(noa, dt, state, moveState, body) {
     // move implementation originally written as external module
     //   see https://github.com/andyhall/voxel-fps-controller
     //   for original code
 
+    if (!noa.entities.getState(state.__id, 'genericPlayerState').isAlive) {
+        return;
+    }
 
     // jumping
     var onGround = (body.atRestY() < 0)
@@ -100,7 +122,7 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
     var m = tempvec
     var push = tempvec2
     if (moveState.speed) {
-        var speed = moveState.speed
+        var speed = moveState.speed*moveState.speedMultiplier.getTotalMultipliedVal()
 
         vec3.set(m, 0, 0, speed)
 
@@ -134,7 +156,4 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
     } else {
         body.friction = state.standingFriction
     }
-
-
-
 }

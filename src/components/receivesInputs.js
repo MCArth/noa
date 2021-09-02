@@ -57,28 +57,26 @@ export default function (noa) {
             var inputState = noa.inputs.state
             var camHeading = noa.camera.heading
 
-            states.forEach(state => {
+            for (var i = 0; i < states.length; i++) {
+                var state = states[i]
                 var moveState = ents.getMoveState(state.__id)
 
                 if (state.isTouchscreen) {
-                    // update rotation - running, etc update is done from react
+                    // update rotation - running, etc update is done from react component
                     moveState.heading = (noa.camera.heading+(Math.PI*2)-(state.joystickHeading+3*Math.PI/2))%(Math.PI*2)
                 }
                 else {
                     // player on pc
                     setMovementState(noa.serverSettings, moveState, inputState, state, camHeading)
                 }
-            })
+            }
         },
-
-        // renderSystem: function rotationProcessor(dt, states) {
-        //     for (const state of states) {
-        //         var moveState = noa.ents.getMovement(state.__id)
-        //         moveState.camHeading = noa.camera.heading
-        //     }
-        // }
     }
 }
+
+
+
+
 
 function setMovementState(serverSettings, state, inputs, keyboardMoverState, camHeading) {
     state.jumping = !!inputs.jump
@@ -109,17 +107,20 @@ function setMovementState(serverSettings, state, inputs, keyboardMoverState, cam
         }
 
         // states have been set, set maxSpeed
-        const speedMultiplier = serverSettings.speedMultiplier
         if (state.crouching) {
-            state.speed = serverSettings.crouchingSpeed*speedMultiplier
+            state.speed = serverSettings.crouchingSpeed
         }
         else if (keyboardMoverState._running) {
-            state.speed = serverSettings.runningSpeed*speedMultiplier
+            state.speed = serverSettings.runningSpeed
         }
         else {
             // just walking
-            state.speed = serverSettings.walkingSpeed*speedMultiplier
+            state.speed = serverSettings.walkingSpeed
         }
+        state.speedMultiplier.setMultiplierType(
+            "serverSettingsSpeedMultiplier",
+            serverSettings.speedMultiplier
+        );
 
         let movementHeading = camHeading
         if (fb) {
