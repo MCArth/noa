@@ -6,6 +6,7 @@ import { SceneOctreeManager } from './sceneOctreeManager'
 import { Scene } from '@babylonjs/core/scene'
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera'
 import { Engine } from '@babylonjs/core/Engines/engine'
+import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
 import { Color3 } from '@babylonjs/core/Maths/math.color'
@@ -105,9 +106,17 @@ export class Rendering {
 function initScene(self, canvas, opts) {
 
     // init internal properties
-    self._engine = new Engine(canvas, opts.antiAlias, {
-        preserveDrawingBuffer: opts.preserveDrawingBuffer,
-    })
+    if (process.env.REACT_APP_IS_CLIENT === 'true') {
+        self._engine = new Engine(canvas, opts.antiAlias, {
+            preserveDrawingBuffer: opts.preserveDrawingBuffer,
+        })
+    }
+    else {
+        self._engine = new NullEngine(canvas, opts.antiAlias, {
+            preserveDrawingBuffer: opts.preserveDrawingBuffer,
+        })
+    }
+
     self._scene = new Scene(self._engine)
     var scene = self._scene
     // remove built-in listeners
@@ -237,8 +246,9 @@ var hlpos = []
  * @param isStatic pass in true if mesh never moves (i.e. change octree blocks)
  * @param pos (optional) global position where the mesh should be
  * @param containingChunk (optional) chunk to which the mesh is statically bound
+ * @param isPickable (optional) whether the mesh is pickable
  */
-Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = null, containingChunk = null) {
+Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = null, containingChunk = null, isPickable=false) {
     // exit silently if mesh has already been added and not removed
     if (this._octreeManager.includesMesh(mesh)) return
 
@@ -255,6 +265,8 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = nul
         mesh.freezeWorldMatrix()
         if (mesh.freezeNormals) mesh.freezeNormals()
     }
+
+    mesh.isPickable = isPickable
 
     // add to the octree, and add dispose handler to remove it
     this._octreeManager.addMesh(mesh, isStatic, pos, containingChunk)
@@ -334,7 +346,10 @@ Rendering.prototype._rebaseOrigin = function (delta) {
 
     this._scene.meshes.forEach(mesh => {
         // parented meshes don't live in the world coord system
-        if (mesh.parent) return
+        // Skip __root__ nodes to work around a babylonjs issue where not fully loaded glb meshes exist in the meshes array and moving them breaks things. (Happens with gun meshes). 
+        if (mesh.parent || mesh.name === "__root__") {
+            return
+        }
 
         // move each mesh by delta (even though most are managed by components)
         mesh.position.subtractInPlace(dvec)

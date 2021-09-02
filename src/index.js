@@ -10,15 +10,17 @@ import ndarray from 'ndarray'
 import { EventEmitter } from 'events'
 import raycast from 'fast-voxel-raycast'
 
-import createContainer from './lib/container'
-import createRendering from './lib/rendering'
-import createWorld from './lib/world'
-import createInputs from './lib/inputs'
-import createPhysics from './lib/physics'
-import createCamera from './lib/camera'
-import createRegistry from './lib/registry'
-const createEntities = require('./lib/entities').default
-import { constants } from './lib/constants'
+import { Container } from './lib/container'
+import { Rendering } from './lib/rendering'
+import { World } from './lib/world'
+import { createInputs } from './lib/inputs'
+import { Physics } from './lib/physics'
+import { Camera } from './lib/camera'
+import { Registry } from './lib/registry'
+import { Entities } from './lib/entities'
+import ObjectMesher from './lib/objectMesher'
+import TerrainMesher from './lib/terrainMesher'
+import { locationHasher } from './lib/util'
 
 
 import packageJSON from '../package.json'
@@ -197,48 +199,6 @@ export class Engine extends EventEmitter {
     /** @internal @prop _pickPos */
     /** @internal @prop _pickResult */
 
-    /** Entity manager / Entity Component System (ECS) 
-     * Aliased to `noa.ents` for convenience.
-     * @type {Entities}
-     */
-    this.entities = createEntities(this, opts)
-    this.ents = this.entities
-    var ents = this.ents
-
-    ents.createComponentsClient()
-    ents.assignFieldsAndHelpers(this)
-
-    /** Entity id for the player entity */
-    this.playerEntity = ents.add(
-        opts.playerStart, // starting location
-        opts.playerWidth, opts.playerHeight,
-        null, null, // no mesh for now, no meshOffset, 
-        true, true
-    )
-
-    // make player entity it collide with terrain and other entities
-    ents.addComponent(this.playerEntity, ents.names.collideTerrain)
-    ents.addComponent(this.playerEntity, ents.names.collideEntities)
-
-    // adjust default physics parameters
-    var body = ents.getPhysicsBody(this.playerEntity)
-    body.gravityMultiplier = 2 // less floaty
-    body.autoStep = opts.playerAutoStep // auto step onto blocks
-
-    // input component - sets entity's movement state from key inputs
-    ents.addComponent(this.playerEntity, ents.names.receivesInputs)
-
-    // add a component to make player mesh fade out when zooming in
-    ents.addComponent(this.playerEntity, ents.names.fadeOnZoom)
-
-    // movement component - applies movement forces
-    // todo: populate movement settings from options
-    var moveOpts = {
-        // airJumps: 1
-    }
-    ents.addComponent(this.playerEntity, ents.names.moveState)
-    ents.addComponent(this.playerEntity, ents.names.movement, moveOpts)
-
     /** `vec3` class used throughout the engine
      * @type {vec3}
      * @prop vec3 */
@@ -259,24 +219,33 @@ export class Engine extends EventEmitter {
     /**
      * The core Engine constructor uses the following options:
      * 
-     *     {
-     *        blockID,   // voxel ID
-     *        position,  // the (solid) block being targeted
-     *        adjacent,  // the (non-solid) block adjacent to the targeted one
-     *        normal,    // e.g. [0, 1, 0] when player is targting the top face of a voxel
-     *     }
-     */
-    this.targetedBlock = null
+     * ```js
+     * var defaultOptions = {
+     *    debug: false,
+     *    silent: false,
+     *    playerHeight: 1.8,
+     *    playerWidth: 0.6,
+     *    playerStart: [0, 10, 0],
+     *    playerAutoStep: false,
+     *    tickRate: 30,           // ticks per second
+     *    maxRenderRate: 0,       // max FPS, 0 for uncapped 
+     *    blockTestDistance: 10,
+     *    stickyPointerLock: true,
+     *    dragCameraOutsidePointerLock: true,
+     *    stickyFullscreen: false,
+     *    skipDefaultHighlighting: false,
+     *    originRebaseDistance: 25,
+     * }
+     * ```
+    */
+    constructor(opts = {}) {
+        super()
+        opts = Object.assign({}, defaultOptions, opts)
 
-    // add a default block highlighting function
-    if (!opts.skipDefaultHighlighting) {
-        // the default listener, defined onto noa in case people want to remove it later
-        this.defaultBlockHighlightFunction = (tgt) => {
-            if (!tgt || (!this.serverSettings.canChange && !this.world.canChangeBlock(tgt.position) && !this.world.canChangeBlock(tgt.adjacent))) {
-                self.rendering.highlightBlockFace(false)
-            } else {
-                self.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
-            }
+        this.version = version
+        if (!opts.silent) {
+            var debugstr = (opts.debug) ? ' (debug)' : ''
+            console.log(`noa-engine v${this.version}${debugstr}`)
         }
 
         // some basic setup
@@ -323,7 +292,6 @@ export class Engine extends EventEmitter {
 
         // make player entity it collide with terrain and other entities
         var ents = this.ents
-        ents.addComponent(this.playerEntity, ents.names.collideTerrain)
         ents.addComponent(this.playerEntity, ents.names.collideEntities)
 
         // adjust default physics parameters
@@ -338,36 +306,55 @@ export class Engine extends EventEmitter {
         ents.addComponent(this.playerEntity, ents.names.fadeOnZoom)
 
         // movement component - applies movement forces
-        ents.addComponent(this.playerEntity, ents.names.movement, {
-            airJumps: 1
-        })
-
+        ents.addComponent(this.playerEntity, ents.names.movement)
 
         this.camera = new Camera(this, opts)
-
 
         this.blockTestDistance = opts.blockTestDistance
         this.blockTargetIdCheck = this.registry.getBlockSolidity
         this.targetedBlock = null
 
-
         // add a default block highlighting function
         if (!opts.skipDefaultHighlighting) {
             // the default listener, defined onto noa in case people want to remove it later
             this.defaultBlockHighlightFunction = (tgt) => {
-                if (tgt) {
-                    this.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
-                } else {
+                if (!tgt
+                    || (!this.serverSettings.canChange
+                        && !this.world.canChangeBlock(tgt.position)
+                        && !this.world.canChangeBlock(tgt.adjacent))
+                    || (this.entities.hasComponent(this.playerEntity, 'heldItem')
+                        && this.entities.getState(this.playerEntity, 'heldItem').heldItem.canPlaceOrBreakBlock === false
+                    )
+                ) {
                     this.rendering.highlightBlockFace(false)
+                } else {
+                    this.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
                 }
             }
             this.on('targetBlockChanged', this.defaultBlockHighlightFunction)
         }
 
+        // bloxd start
+        this.serverSettings = {}
+        this.logErrorMessage = (str, err) => {throw err}
+
+        this.actionOrigin = null
+        this.actionDirection = null
+
+        // util references used on server
+        this.room = null
+        this.pluginApi = null
+        // bloxd end
+
         // various internals
         this._terrainMesher = new TerrainMesher(this)
         this._objectMesher = new ObjectMesher(this)
 
+        this._pickResult = {
+            _localPosition: vec3.create(),
+            position: [0, 0, 0],
+            normal: [0, 0, 0],
+        }
 
         // several reusable structs for returning data about picks
         this._targetedBlockDat = {
@@ -390,43 +377,8 @@ export class Engine extends EventEmitter {
             normal: [0, 0, 0],
         }
 
-
-
-
-
-Engine.prototype.tick = function () {
-    try {
-        if (this._paused) return
-        profile_hook('start')
-        checkWorldOffset(this)
-        var dt = this._tickRate // fixed timesteps!
-        this.world.tick(dt) // chunk creation/removal
-        profile_hook('world')
-        if (!this.world.playerChunkLoaded) {
-            // when waiting on worldgen, just tick the meshing queue and exit
-            this.rendering.tick(dt)
-            return
-        }
-        this.physics.tick(dt) // iterates physics
-        profile_hook('physics')
-        this.rendering.tick(dt) // does deferred chunk meshing
-        profile_hook('rendering')
-        this.updateBlockTargets() // finds targeted blocks, and highlights one if needed
-        profile_hook('targets')
-        this.entities.tick(dt) // runs all entity systems
-        profile_hook('entities')
-        this.emit('tick', dt)
-        profile_hook('tick event')
-        profile_hook('end')
-        // clear accumulated scroll inputs (mouseMove is cleared on render)
-        var st = this.inputs.state
-        st.scrollx = st.scrolly = st.scrollz = 0
-    }
-    catch(e) {
-        this.logErrorMessage("Error in noa tickloop", e)
-    }
-}
-
+        // temp hacks for development
+        if (opts.debug) {            
             // expose often-used classes
             this.vec3 = vec3
             this.ndarray = ndarray
@@ -446,6 +398,67 @@ Engine.prototype.tick = function () {
 
 
 
+
+/**
+ * Tick function, called by container module at a fixed timestep. 
+ * Clients should not normally need to call this manually.
+ * @internal
+*/
+    tick(dt) {
+        try {
+            // note dt is a fixed value, not an observed delay
+            if (this._paused) {
+                if (this.world.worldGenWhilePaused) this.world.tick()
+                return
+            }
+            profile_hook('start')
+            checkWorldOffset(this)
+            this.world.tick() // chunk creation/removal
+            profile_hook('world')
+            if (!this.world.playerChunkLoaded) {
+                // when waiting on worldgen, just tick the meshing queue and exit
+                this.rendering.tick(dt)
+                return
+            }
+            this.physics.tick(dt) // iterates physics
+            profile_hook('physics')
+            this._objectMesher.tick() // rebuild objects if needed
+            this.rendering.tick(dt) // does deferred chunk meshing
+            profile_hook('rendering')
+            this.updateBlockTargets() // finds targeted blocks, and highlights one if needed
+            profile_hook('targets')
+            this.entities.tick(dt) // runs all entity systems
+            profile_hook('entities')
+            this.emit('tick', dt)
+            profile_hook('tick event')
+            profile_hook('end')
+            // clear accumulated scroll inputs (mouseMove is cleared on render)
+            var st = this.inputs.state
+            st.scrollx = st.scrolly = st.scrollz = 0
+        }
+        catch(e) {
+            this.logErrorMessage("Error in noa tickloop", e)
+        }
+    }
+
+            // expose often-used classes
+            this.vec3 = vec3
+            this.ndarray = ndarray
+            // gameplay tweaks
+            ents.getMovement(1).airJumps = 999
+            // decorate window while making TS happy
+            var win = /** @type {any} */ (window)
+            win.noa = this
+            win.vec3 = vec3
+            win.ndarray = ndarray
+            win.scene = this.rendering._scene
+        }
+
+        // add hooks to throw helpful errors when using deprecated methods
+        deprecateStuff(this)
+    }
+
+
     /*
      *
      *
@@ -453,56 +466,108 @@ Engine.prototype.tick = function () {
      *
      *
     */
+    /**
+     * Render function, called every animation frame. Emits #beforeRender(dt), #afterRender(dt) 
+     * where dt is the time in ms *since the last tick*.
+     * Clients should not normally need to call this manually.
+     * @internal
+    */
+    render(dt, framePart) {
+        try {
+            // note: framePart is how far we are into the current tick
+            // dt is the *actual* time (ms) since last render, for
+            // animating things that aren't tied to game tick rate
 
-Engine.prototype.render = function (framePart) {
-    try {
-        if (this._paused) return
-        profile_hook_render('start')
-        // update frame position property and calc dt
-        var framesAdvanced = framePart - this.positionInCurrentTick
-        if (framesAdvanced < 0) framesAdvanced += 1
-        this.positionInCurrentTick = framePart
-        var dt = framesAdvanced * this._tickRate // ms since last tick
-        // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
-        if (this.container.hasPointerLock ||
-            !this.container.supportsPointerLock ||
-            (this._dragOutsideLock && this.inputs.state.fire)) {
-            this.camera.applyInputsToCamera()
+            // frame position - for rendering movement between ticks
+            this.positionInCurrentTick = framePart
+
+            // when paused, just optionally ping worldgen, then exit
+            if (this._paused) {
+                if (this.world.worldGenWhilePaused) this.world.render()
+                return
+            }
+
+            profile_hook_render('start')
+            // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
+            if (this.container.hasPointerLock ||
+                !this.container.supportsPointerLock ||
+                (this._dragOutsideLock && this.inputs.state.fire)) {
+                this.camera.applyInputsToCamera()
+            }
+            profile_hook('init')
+
+            // brief run through meshing queue
+            this.world.render()
+            profile_hook_render('meshing')
+
+            // entity render systems
+            this.camera.updateBeforeEntityRenderSystems(dt)
+            this.entities.render(dt)
+            this.camera.updateAfterEntityRenderSystems()
+            profile_hook('entities')
+
+            // events and render
+            this.emit('beforeRender', dt)
+            profile_hook_render('before render')
+
+            this.rendering.render()
+            this.rendering.postRender()
+            profile_hook_render('render')
+
+            this.emit('afterRender', dt)
+            profile_hook_render('after render')
+            profile_hook_render('end')
+
+            // clear accumulated mouseMove inputs (scroll inputs cleared on render)
+            this.inputs.state.dx = this.inputs.state.dy = 0
         }
-        profile_hook('init')
-
-        // entity render systems
-        this.camera.updateBeforeEntityRenderSystems()
-        this.entities.render(dt)
-        this.camera.updateAfterEntityRenderSystems()
-        profile_hook('entities')
-
-        // events and render
-        this.emit('beforeRender', dt)
-        profile_hook_render('before render')
-
-        this.rendering.render(dt)
-        profile_hook_render('render')
-
-        this.emit('afterRender', dt)
-        profile_hook_render('after render')
-        profile_hook_render('end')
-
-        // clear accumulated mouseMove inputs (scroll inputs cleared on render)
-        this.inputs.state.dx = this.inputs.state.dy = 0
-    }
-    catch(e) {
-        this.logErrorMessage("Error in noa renderloop", e)
-    }
-}
-
-        // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
-        if (this.container.hasPointerLock ||
-            !this.container.supportsPointerLock ||
-            (this._dragOutsideLock && this.inputs.state.fire)) {
-            this.camera.applyInputsToCamera()
+        catch(e) {
+            this.logErrorMessage("Error in noa renderloop", e)
         }
-        profile_hook_render('init')
+    }
+
+
+    /** Pausing the engine will also stop render/tick events, etc. */
+    setPaused(paused = false) {
+        this._paused = !!paused
+        // when unpausing, clear any built-up mouse inputs
+        if (!paused) {
+            this.inputs.state.dx = this.inputs.state.dy = 0
+        }
+    }
+
+    /** 
+     * Get the voxel ID at the specified position
+    */
+    getBlock(x, y = 0, z = 0) {
+        if (x.length) return this.world.getBlockID(x[0], x[1], x[2])
+        return this.world.getBlockID(x, y, z)
+    }
+
+    /** 
+     * Sets the voxel ID at the specified position. 
+     * Does not check whether any entities are in the way! 
+     */
+    setBlock(id, x, y = 0, z = 0) {
+        if (x.length) return this.world.setBlockID(id, x[0], x[1], x[2])
+        return this.world.setBlockID(id, x, y, z)
+    }
+
+    /**
+     * Adds a block, unless there's an entity in the way.
+    */
+    addBlock(id, x, y = 0, z = 0) {
+        // add a new terrain block, if nothing blocks the terrain there
+        if (x.length) {
+            if (this.entities.isTerrainBlocked(x[0], x[1], x[2])) return
+            this.world.setBlockID(id, x[0], x[1], x[2])
+            return id
+        } else {
+            if (this.entities.isTerrainBlocked(x, y, z)) return
+            this.world.setBlockID(id, x, y, z)
+            return id
+        }
+    }
 
         // brief run through meshing queue
         this.world.render()
@@ -529,57 +594,6 @@ Engine.prototype.render = function (framePart) {
         // clear accumulated mouseMove inputs (scroll inputs cleared on render)
         this.inputs.state.dx = this.inputs.state.dy = 0
     }
-
-
-
-
-    /** Pausing the engine will also stop render/tick events, etc. */
-    setPaused(paused = false) {
-        this._paused = !!paused
-        // when unpausing, clear any built-up mouse inputs
-        if (!paused) {
-            this.inputs.state.dx = this.inputs.state.dy = 0
-        }
-    }
-
-    /** 
-     * Get the voxel ID at the specified position
-    */
-    getBlock(x, y = 0, z = 0) {
-        if (x.length) return this.world.getBlockID(x[0], x[1], x[2])
-        return this.world.getBlockID(x, y, z)
-    }
-
-    /** 
-     * Sets the voxel ID at the specified position. 
-     * Does not check whether any entities are in the way! 
-     */
-    setBlock(id, x, y = 0, z = 0) {
-        if (x.length) return this.world.setBlockID(x[0], x[1], x[2])
-        return this.world.setBlockID(id, x, y, z)
-    }
-
-    /**
-     * Adds a block, unless there's an entity in the way.
-    */
-    addBlock(id, x, y = 0, z = 0) {
-        // add a new terrain block, if nothing blocks the terrain there
-        if (x.length) {
-            if (this.entities.isTerrainBlocked(x[0], x[1], x[2])) return
-            this.world.setBlockID(id, x[0], x[1], x[2])
-            return id
-        } else {
-            if (this.entities.isTerrainBlocked(x, y, z)) return
-            this.world.setBlockID(id, x, y, z)
-            return id
-        }
-    }
-
-
-
-
-
-
 
 
     /*
@@ -641,7 +655,30 @@ Engine.prototype.render = function (framePart) {
         }
     }
 
+    /** 
+     * Sets the voxel ID at the specified position. 
+     * Does not check whether any entities are in the way! 
+     */
+    setBlock(id, x, y = 0, z = 0) {
+        if (x.length) return this.world.setBlockID(x[0], x[1], x[2])
+        return this.world.setBlockID(id, x, y, z)
+    }
 
+    /**
+     * Adds a block, unless there's an entity in the way.
+    */
+    addBlock(id, x, y = 0, z = 0) {
+        // add a new terrain block, if nothing blocks the terrain there
+        if (x.length) {
+            if (this.entities.isTerrainBlocked(x[0], x[1], x[2])) return
+            this.world.setBlockID(id, x[0], x[1], x[2])
+            return id
+        } else {
+            if (this.entities.isTerrainBlocked(x, y, z)) return
+            this.world.setBlockID(id, x, y, z)
+            return id
+        }
+    }
 
 
 
@@ -710,7 +747,46 @@ Engine.prototype.render = function (framePart) {
         return result
     }
 
-}
+    pickBlock(pos, vec, dist, blockIdTestFunction) {
+        var blockInfo = {
+            blockID: 0,
+            position: [],
+            normal: [],
+            adjacent: [],
+        }
+        var result = this.pick(pos, vec, dist, blockIdTestFunction)
+        if (result) {
+            pickResultIntoBlockInfo(this, result, blockInfo)
+            return blockInfo
+        }
+        else {
+            return null
+        }
+    }
+
+    // Each frame, by default pick along the player's view vector 
+    // and tell rendering to highlight the struck block face
+    updateBlockTargets(forceHighlightUpdate=false) {
+        var newhash = 0
+        var blockIdFn = this.blockTargetIdCheck || this.registry.getBlockSolidity
+
+        let origin = this.actionOrigin // if undefined, _localPick will default to camera pos
+        let direction = this.actionDirection // if undefined, _localPick will default to camera direction
+
+        var result = this._localPick(origin, direction, null, blockIdFn)
+        if (result) {
+            var dat = this._targetedBlockDat
+            pickResultIntoBlockInfo(this, result, dat)
+            this.targetedBlock = dat
+            newhash = this.makeTargetHash(dat.position, dat.normal, dat.blockID)
+        } else {
+            this.targetedBlock = null
+        }
+        if (newhash != this._prevTargetHash || forceHighlightUpdate) {
+            this.emit('targetBlockChanged', this.targetedBlock)
+            this._prevTargetHash = newhash
+        }
+    }
 
 
 
@@ -749,22 +825,7 @@ function checkWorldOffset(noa) {
 
 
 
-Engine.prototype.pickBlock = function (pos, vec, dist, blockIdTestFunction) {
-    var blockInfo = {
-        blockID: 0,
-        position: [],
-        normal: [],
-        adjacent: [],
-    }
-    var result = this.pick(pos, vec, dist, blockIdTestFunction)
-    if (result) {
-        pickResultIntoBlockInfo(this, result, blockInfo)
-        return blockInfo
-    }
-    else {
-        return null
-    }
-}
+
 
 function pickResultIntoBlockInfo(noa, pickResult, blockInfoObj) {
     // pick stops just shy of voxel boundary, so floored pos is the adjacent voxel
@@ -772,30 +833,6 @@ function pickResultIntoBlockInfo(noa, pickResult, blockInfoObj) {
     vec3.copy(blockInfoObj.normal, pickResult.normal)
     vec3.sub(blockInfoObj.position, blockInfoObj.adjacent, blockInfoObj.normal)
     blockInfoObj.blockID = noa.world.getBlockID(blockInfoObj.position[0], blockInfoObj.position[1], blockInfoObj.position[2])
-}
-
-// Each frame, by default pick along the player's view vector 
-// and tell rendering to highlight the struck block face
-Engine.prototype.updateBlockTargets = function () {
-    var newhash = ''
-    var blockIdFn = this.blockTargetIdCheck || this.registry.getBlockSolidity
-
-    let origin = this.actionOrigin // if undefined, _localPick will default to camera pos
-    let direction = this.actionDirection // if undefined, _localPick will default to camera direction
-
-    var result = this._localPick(origin, direction, null, blockIdFn)
-    if (result) {
-        var dat = _targetedBlockDat
-        pickResultIntoBlockInfo(this, result, dat)
-        this.targetedBlock = dat
-        newhash = dat.position.join('|') + dat.normal.join('|') + '|' + dat.blockID
-    } else {
-        this.targetedBlock = null
-    }
-    if (newhash != _prevTargetHash) {
-        this.emit('targetBlockChanged', this.targetedBlock)
-        _prevTargetHash = newhash
-    }
 }
 
 
@@ -809,7 +846,7 @@ Engine.prototype.updateBlockTargets = function () {
 function deprecateStuff(noa) {
     var ver = `0.27`
     var dep = (loc, name, msg) => {
-        var throwFn = () => { throw `This property changed in ${ver} - ${msg}` }
+        var throwFn = () => { throw new Error(`This property changed in ${ver} - ${msg}`) }
         Object.defineProperty(loc, name, { get: throwFn, set: throwFn })
     }
     dep(noa, 'getPlayerEyePosition', 'to get the camera/player offset see API docs for `noa.camera.cameraTarget`')

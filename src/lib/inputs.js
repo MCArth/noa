@@ -10,48 +10,27 @@ var defaultOptions = {
     allowContextMenu: false,
 }
 
-var defaultBindings = {
-    bindings: {
-        "forward": ["W", "<up>"],
-        "left": ["A", "<left>"],
-        "backward": ["S", "<down>"],
-        "right": ["D", "<right>"],
-        "fire": "<mouse 1>",
-        "mid-fire": ["<mouse 2>", "Q"],
-        "alt-fire": ["<mouse 3>", "E"],
-        "jump": "<space>",
-        "sprint": "<shift>",
-        "crouch": ["Z", "<caps-lock>", "\\", "C"],
-    }
+const defaultBindings = {
+    "forward": ["W", "<up>"],
+    "left": ["A", "<left>"],
+    "backward": ["S", "<down>"],
+    "right": ["D", "<right>"],
+    "fire": "<mouse 1>",
+    "mid-fire": ["<mouse 2>", "Q"],
+    "alt-fire": ["<mouse 3>", "E"],
+    "jump": "<space>",
+    "sprint": "<shift>",
+    "crouch": ["Z", "<caps-lock>", "\\", "C"],
 }
 
-
-
-//Prevent Ctrl+S (and Ctrl+W for old browsers and Edge)
-document.onkeydown = function (e) {
-    e = e || window.event;//Get event
-
-    var code = e.which || e.keyCode //Get key code
-
-    if (!e.ctrlKey) return;
-
-
-    switch (code) {
-        case 220: 
-        case 83://Block Ctrl+S
-        case 87://Block Ctrl+W -- Not work in Chrome and new Firefox
-        case 68: // block Ctrl+D
-            e.preventDefault()
-            e.stopPropagation()
-            break;
-    }
-};
-
-
-function makeInputs(noa, opts, element) {
-    opts = Object.assign({}, defaultBindings, opts)
-    var inputs = createInputs(element, opts)
-    var b = opts.bindings
+/**
+ * @internal
+ * @returns {Inputs}
+ */
+export function createInputs(noa, opts, element) {
+    opts = Object.assign({}, defaultOptions, opts)
+    var inputs = makeInputs(element, opts)
+    var b = opts.bindings || defaultBindings
     for (var name in b) {
         var arr = (Array.isArray(b[name])) ? b[name] : [b[name]]
         arr.unshift(name)
@@ -87,7 +66,7 @@ function makeInputs(noa, opts, element) {
  *     "alt-fire": ["<mouse 3>", "E"],
  *     "jump": "<space>",
  *     "sprint": "<shift>",
- *     "crouch": "<control>",
+ *     "crouch": ["Z", "<caps-lock>", "\\", "C"],
  * }
  * ```
  *

@@ -11,7 +11,8 @@ export default function (noa) {
 
         state: {
             mesh: null,
-            offset: null
+            offset: null,
+            isPickable: false
         },
 
 
@@ -22,7 +23,9 @@ export default function (noa) {
                 noa.rendering.addMeshToScene(
                     state.mesh,
                     false,
-                    posDat.position
+                    posDat.position,
+                    null,
+                    state.isPickable
                 );
                 // CHANGE ARTHUR START
                 // Adds descendant children to scene - a working variant of this may be needed in future

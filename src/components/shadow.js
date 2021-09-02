@@ -1,10 +1,9 @@
-
-import vec3 from 'gl-vec3'
-
 import { Color3 } from '@babylonjs/core/Maths/math.color'
 import { Mesh } from '@babylonjs/core/Meshes/mesh'
 import '@babylonjs/core/Meshes/Builders/discBuilder'
 import '@babylonjs/core/Meshes/instancedMesh'
+
+var vec3 = require('gl-vec3')
 
 
 export default function (noa, dist) {
@@ -41,8 +40,8 @@ export default function (noa, dist) {
         onAdd: function (eid, state) {
             var mesh = disc.createInstance('shadow_instance')
             noa.rendering.addMeshToScene(mesh)
-            mesh.setEnabled(false)
             state._mesh = mesh
+            mesh.setEnabled(false)
         },
 
 
@@ -58,7 +57,11 @@ export default function (noa, dist) {
                 var state = states[i]
                 var posState = noa.ents.getPositionData(state.__id)
                 var physState = noa.ents.getPhysics(state.__id)
-                updateShadowHeight(noa, posState, physState, state._mesh, state.size, dist, cpos)
+                var enabledCombinator
+                if (noa.entities.hasComponent(state.__id, "genericPlayerState")) {
+                    enabledCombinator = noa.entities.getState(state.__id, "genericPlayerState").shadowMeshEnabledCombinator
+                }
+                updateShadowHeight(noa, posState, physState, state._mesh, state.size, dist, cpos, enabledCombinator)
             }
         },
 
@@ -83,7 +86,7 @@ export default function (noa, dist) {
 var shadowPos = vec3.fromValues(0, 0, 0)
 var down = vec3.fromValues(0, -1, 0)
 
-function updateShadowHeight(noa, posDat, physDat, mesh, size, shadowDist, camPos) {
+function updateShadowHeight(noa, posDat, physDat, mesh, size, shadowDist, camPos, enabledCombinator) {
 
     // local Y ground position - from physics or raycast
     var localY
@@ -92,7 +95,12 @@ function updateShadowHeight(noa, posDat, physDat, mesh, size, shadowDist, camPos
     } else {
         var res = noa._localPick(posDat._renderPosition, down, shadowDist)
         if (!res) {
-            mesh.setEnabled(false)
+            if (enabledCombinator) {
+                enabledCombinator.setBooleanType('placeToPutShadowExists', false)
+            }
+            else {
+                mesh.setEnabled(false)
+            }
             return
         }
         localY = res.position[1] - noa.worldOriginOffset[1]
@@ -111,5 +119,10 @@ function updateShadowHeight(noa, posDat, physDat, mesh, size, shadowDist, camPos
     var dist = posDat._localPosition[1] - localY
     var scale = size * 0.7 * (1 - dist / shadowDist)
     mesh.scaling.copyFromFloats(scale, scale, scale)
-    mesh.setEnabled(true)
+    if (enabledCombinator) {
+        enabledCombinator.setBooleanType('placeToPutShadowExists', true)
+    }
+    else {
+        mesh.setEnabled(true)
+    }
 }

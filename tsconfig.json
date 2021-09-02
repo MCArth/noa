@@ -23,6 +23,7 @@
         ],
         "typeRoots": [
             "./types",
+            "./node_modules/@types"
         ],
         // "moduleResolution": "Node",
         // "downlevelIteration": true,

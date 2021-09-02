@@ -108,18 +108,18 @@ export class World extends EventEmitter {
             this._coordsToChunkIndexes = chunkCoordsToIndexesPowerOfTwo
             this._coordsToChunkLocals = chunkCoordsToLocalsPowerOfTwo
         }
+
+        // can Change permissions
+        this.canChangeBlockCoord = new Set()
+        this.canChangeBlockType = new Set()
+        this.canChangeBlockRect = []
+        this.cantChangeBlockCoord = new Set()
+        this.cantChangeBlockType = new Set()
+        this.cantChangeBlockRect = []
+
+        this.walkThroughType = new Set()
+        this.walkThroughRect = []
     }
-
-    // can Change permissions
-    this.canChangeBlockCoord = new Set()
-    this.canChangeBlockType = new Set()
-    this.canChangeBlockRect = []
-    this.cantChangeBlockCoord = new Set()
-    this.cantChangeBlockType = new Set()
-    this.cantChangeBlockRect = []
-
-    this.walkThroughType = new Set()
-    this.walkThroughRect = []
 }
 
 
@@ -149,14 +149,13 @@ World.prototype.getBlockID = function (x, y, z) {
 
 /** @param x,y,z */
 World.prototype.getBlockSolidity = function (x, y, z) {
-    var chunk = this._getChunkByCoords(x, y, z)
+    var [ci, cj, ck] = this._coordsToChunkIndexes(x, y, z)
+    var chunk = this._storage.getChunkByIndexes(ci, cj, ck)
     if (!chunk) return false
 
+    var [i, j, k] = this._coordsToChunkLocals(x, y, z)
 
-    const id = chunk.get(
-        this._worldCoordToChunkIndex(x),
-        this._worldCoordToChunkIndex(y),
-        this._worldCoordToChunkIndex(z))
+    const id = chunk.get(i, j, k)
     
     if (id === 0) {
         return false
@@ -173,10 +172,7 @@ World.prototype.getBlockSolidity = function (x, y, z) {
     }
 
     // check for fluid
-    if (!chunk.getSolidityAt(
-        this._worldCoordToChunkIndex(x),
-        this._worldCoordToChunkIndex(y),
-        this._worldCoordToChunkIndex(z))) {
+    if (!chunk.getSolidityAt(i, j, k)) {
         return false
     }
 
@@ -282,6 +278,32 @@ World.prototype.invalidateChunk = function (chunkId) {
     invalidateChunk(this, chunkId)
 }
 
+/** When manually controlling chunk loading, tells the engine that the 
+ * chunk containing the specified (x,y,z) needs to be created and loaded.
+ * > Note: has no effect when `noa.world.manuallyControlChunkLoading` is not set.
+ * @param x, y, z
+ */
+World.prototype.manuallyLoadChunk = function (x, y, z) {
+    if (!this.manuallyControlChunkLoading) throw manualErr
+    var [i, j, k] = this._coordsToChunkIndexes(x, y, z)
+    this._chunksKnown.add(i, j, k)
+    this._chunksToRequest.add(i, j, k)
+}
+
+/** When manually controlling chunk loading, tells the engine that the 
+ * chunk containing the specified (x,y,z) needs to be unloaded and disposed.
+ * > Note: has no effect when `noa.world.manuallyControlChunkLoading` is not set.
+ * @param x, y, z
+ */
+ World.prototype.manuallyUnloadChunk = function (x, y, z) {
+    if (!this.manuallyControlChunkLoading) throw manualErr
+    var [i, j, k] = this._coordsToChunkIndexes(x, y, z)
+    this._chunksToRemove.add(i, j, k)
+    this._chunksToMesh.remove(i, j, k)
+    this._chunksToRequest.remove(i, j, k)
+    this._chunksToMeshFirst.remove(i, j, k)
+}
+var manualErr = 'Set `noa.world.manuallyControlChunkLoading` if you need this API'
 
 function posWithinRect(pos, [lx, ly, lz, hx, hy, hz]) {
     return pos[0] >= lx && pos[1] >= ly && pos[2] >= lz && pos[0] <= hx && pos[1] <= hy && pos[2] <= hz
@@ -447,16 +469,32 @@ World.prototype._getChunkByCoords = function (x, y, z) {
 
 
 function initChunkQueues(world) {
-    world._chunkIDsKnown = []       // all chunks existing in any queue // arthur comment: I think this it also contains all loaded chunks (and I can't see a list with those) but I may be wrong
-    world._chunkIDsToRequest = []   // not yet requested from client
-    world._chunkIDsPending = []     // requested, awaiting creation
-    world._chunkIDsToMesh = []      // created but not yet meshed
-    world._chunkIDsToMeshFirst = [] // priority meshing queue
-    world._chunkIDsToRemove = []    // chunks awaiting disposal
-    // accessor for chunks to queue themselves for remeshing
-    world._queueChunkForRemesh = (chunk) => {
-        queueChunkForRemesh(world, chunk)
-    }
+    // queue meanings:
+    //    Known:        all chunks existing in any queue // arthur comment: I think this it also contains all loaded chunks (and I can't see a list with those) but I may be wrong
+    //    ToRequest:    needed but not yet requested from client
+    //    Pending:      requested, awaiting creation
+    //    ToMesh:       created but not yet meshed
+    //    ToMeshFirst:  priority meshing queue
+    //    ToRemove:     chunks awaiting disposal
+    world._chunksKnown = new LocationQueue()
+    world._chunksToMesh = new LocationQueue()
+    world._chunksPending = new LocationQueue()
+    world._chunksToRemove = new LocationQueue()
+    world._chunksToRequest = new LocationQueue()
+    world._chunksToMeshFirst = new LocationQueue()
+}
+
+// internal accessor chunks to queue themeselves for remeshing
+World.prototype._queueChunkForRemesh = function (chunk) {
+    possiblyQueueChunkForMeshing(this, chunk)
+}
+
+
+
+// helper - chunk indexes of where the player is
+function getPlayerChunkIndexes(world) {
+    var pos = world.noa.entities.getPosition(world.noa.playerEntity)
+    return world._coordsToChunkIndexes(pos[0], pos[1], pos[2])
 }
 
 
@@ -549,18 +587,12 @@ function invalidateChunksInBox(world, box) {
     })
 }
 
-function invalidateChunk(world, chunkId) {
-    const [x, y, z] = parseChunkID(chunkId)
+World.prototype.invalidateAndRerequestChunk = function (x, y, z) {
+    if (this._chunksToRemove.includes(x, y, z)) return
 
-    world._chunkIDsKnown.forEach(id => {
-        var pos = parseChunkID(id)
-        if (pos[0] !== x || pos[1] !== y || pos[2] !== z) {
-            return
-        }
-
-        if (world._chunkIDsToRemove.includes(id)) return
-        enqueueID(id, world._chunkIDsToRequest)
-    })
+    if (!this._chunksToRequest.includes(x, y, z)) {
+        this._chunksToRequest.add(x, y, z)
+    }
 }
 
 // when current world changes - empty work queues and mark all for removal

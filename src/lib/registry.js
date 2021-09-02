@@ -31,8 +31,6 @@ var blockDefaults = {
 var MAX_BLOCK_ID = (1 << 16) - 1
 
 
-
-
 /* 
  * 
  *      data structures
@@ -186,6 +184,132 @@ export class Registry {
         }
 
 
+/**
+ * `noa.registry` - Where you register your voxel types, 
+ * materials, properties, and events.
+ * 
+ * This module uses the following default options (from the options
+ * object passed to the [[Engine]]):
+ * 
+ * ```js
+ * var defaults = {
+ *     texturePath: ''
+ * }
+ * ```
+*/
+
+export class Registry {
+
+    /** @internal @prop noa */
+    /** @internal @prop _texturePath */
+
+
+    /** @internal */
+    constructor(noa, opts) {
+        this.noa = noa
+        opts = Object.assign({}, defaults, opts)
+
+        this._texturePath = opts.texturePath
+
+
+        /* 
+         * 
+         *      Block registration methods
+         * 
+         */
+
+
+
+        /**
+         * Register (by integer ID) a block type and its parameters.
+         * 
+         *  `id` param: integer, currently 1..255. This needs to be passed in by the 
+         *    client because it goes into the chunk data, which someday will get serialized.
+         * 
+         *  `options` param: Recognized fields for the options object:
+         * 
+         *  * material: can be:
+         *      * one (String) material name
+         *      * array of 2 names: [top/bottom, sides]
+         *      * array of 3 names: [top, bottom, sides]
+         *      * array of 6 names: [-x, +x, -y, +y, -z, +z]
+         *    If not specified, terrain won't be meshed for the block type
+         *  * solid: (true) solidity for physics purposes
+         *  * opaque: (true) fully obscures neighboring blocks
+         *  * fluid: (false) whether nonsolid block is a fluid (buoyant, viscous..)
+         *  * blockMesh: (null) if specified, noa will create a copy this mesh in the voxel
+         *  * fluidDensity: (1.0) for fluid blocks
+         *  * viscosity: (0.5) for fluid blocks
+         *  * onLoad(): block event handler
+         *  * onUnload(): block event handler
+         *  * onSet(): block event handler
+         *  * onUnset(): block event handler
+         *  * onCustomMeshCreate(): block event handler
+         */
+
+        this.registerBlock = function (id, options = null) {
+            if (!options) options = {}
+            blockDefaults.solid = !options.fluid
+            blockDefaults.opaque = !options.fluid
+            var opts = Object.assign({}, blockDefaults, options)
+
+            // console.log('register block: ', id, opts)
+            if (id < 1 || id > MAX_BLOCK_ID) throw 'Block id out of range: ' + id
+
+            // if block ID is greater than current highest ID, 
+            // register fake blocks to avoid holes in lookup arrays
+            while (id > blockSolidity.length) {
+                this.registerBlock(blockSolidity.length, {})
+            }
+
+            // flags default to solid, opaque, nonfluid
+            blockSolidity[id] = !!opts.solid
+            blockOpacity[id] = !!opts.opaque
+            blockIsFluid[id] = !!opts.fluid
+
+            // store any custom mesh
+            blockIsObject[id] = !!opts.blockMesh
+            blockMeshes[id] = opts.blockMesh || null
+
+            // parse out material parameter
+            // always store 6 material IDs per blockID, so material lookup is monomorphic
+            var mat = opts.material || null
+            var mats
+            if (!mat) {
+                mats = [null, null, null, null, null, null]
+            } else if (typeof mat == 'string') {
+                mats = [mat, mat, mat, mat, mat, mat]
+            } else if (mat.length && mat.length == 2) {
+                // interpret as [top/bottom, sides]
+                mats = [mat[1], mat[1], mat[0], mat[0], mat[1], mat[1]]
+            } else if (mat.length && mat.length == 3) {
+                // interpret as [top, bottom, sides]
+                mats = [mat[2], mat[2], mat[0], mat[1], mat[2], mat[2]]
+            } else if (mat.length && mat.length == 6) {
+                // interpret as [-x, +x, -y, +y, -z, +z]
+                mats = mat
+            } else throw 'Invalid material parameter: ' + mat
+
+            // argument is material name, but store as material id, allocating one if needed
+            for (var i = 0; i < 6; ++i) {
+                blockMats[id * 6 + i] = getMaterialId(this, matIDs, mats[i], true)
+            }
+
+            // props data object - currently only used for fluid properties
+            blockProps[id] = {}
+
+            // if block is fluid, initialize properties if needed
+            if (blockIsFluid[id]) {
+                blockProps[id].fluidDensity = opts.fluidDensity
+                blockProps[id].viscosity = opts.viscosity
+            }
+
+            // event callbacks
+            var hasHandler = opts.onLoad || opts.onUnload || opts.onSet || opts.onUnset || opts.onCustomMeshCreate
+            blockHandlers[id] = (hasHandler) ? new BlockCallbackHolder(opts) : null
+
+            return id
+        }
 
 
         /**
@@ -217,6 +341,33 @@ export class Registry {
         }
 
 
+        /**
+         * Register (by name) a material and its parameters.
+         * 
+         * @param name
+         * @param color
+         * @param textureURL
+         * @param texHasAlpha
+         * @param renderMaterial an optional BABYLON material to be used for block faces with this block material
+         */
+
+        this.registerMaterial = function (name, color = [1, 1, 1], textureURL = '', texHasAlpha = false, renderMaterial = null) {
+            // console.log('register mat: ', name, color, textureURL)
+            var id = matIDs[name] || matData.length
+            matIDs[name] = id
+            var alpha = 1
+            if (color && color.length == 4) {
+                alpha = color.pop()
+            }
+            matData[id] = {
+                color: color || [1, 1, 1],
+                alpha: alpha,
+                texture: textureURL ? this._texturePath + textureURL : '',
+                textureAlpha: !!texHasAlpha,
+                renderMat: renderMaterial || null,
+            }
+            return id
+        }
 
         /*
          *      quick accessors for querying block ID stuff
@@ -261,6 +412,11 @@ export class Registry {
             return blockMats[blockId * 6 + dir]
         }
 
+        // look up a block ID's face material
+        // dir is a value 0..5: [ +x, -x, +y, -y, +z, -z ]
+        this.getBlockFaceMaterial = function (blockId, dir) {
+            return blockMats[blockId * 6 + dir]
+        }
 
 
 
@@ -280,6 +436,10 @@ export class Registry {
             return matData[matID]
         }
 
+        // look up material's properties: color, alpha, texture, textureAlpha
+        this.getMaterialData = function (matID) {
+            return matData[matID]
+        }
 
 
 
@@ -299,6 +459,13 @@ export class Registry {
         this._blockMeshLookup = blockMeshes
         this._blockHandlerLookup = blockHandlers
 
+        // internal access to lookup arrays
+        this._solidityLookup = blockSolidity
+        this._opacityLookup = blockOpacity
+        this._fluidityLookup = blockIsFluid
+        this._objectLookup = blockIsObject
+        this._blockMeshLookup = blockMeshes
+        this._blockHandlerLookup = blockHandlers
 
 
 
@@ -312,6 +479,13 @@ export class Registry {
         }
         var white = [1, 1, 1]
 
+        // look up color used for vertices of blocks of given material
+        // - i.e. white if it has a texture, color otherwise
+        this._getMaterialVertexColor = function (matID) {
+            if (matData[matID].texture) return white
+            return matData[matID].color
+        }
+        var white = [1, 1, 1]
 
 
 
@@ -327,6 +501,10 @@ export class Registry {
         this.registerMaterial('dirt', [0.4, 0.3, 0], null)
         this.registerBlock(1, { material: 'dirt' })
 
+        // add a default material and set ID=1 to it
+        // note that registering new block data overwrites the old
+        this.registerMaterial('dirt', [0.4, 0.3, 0], null)
+        this.registerBlock(1, { material: 'dirt' })
 
 
     }

@@ -1,8 +1,15 @@
-const updatePositionExtents = require('../components/position.js').updatePositionExtents
-const setPhysicsFromPosition = require('../components/physics.js').setPhysicsFromPosition
+import vec3 from 'gl-vec3'
+import ECS from 'ent-comp'
 
-const vec3 = require('gl-vec3')
-const EntComp = require('ent-comp')
+import { updatePositionExtents } from '../components/position'
+
+const setPhysicsFromPosition = require('../components/physics').setPhysicsFromPosition
+
+
+
+var defaultOptions = {
+    shadowDistance: 10,
+}
 
 const movement = require('../components/movement.js')
 const physics = require('../components/physics.js')
@@ -22,19 +29,6 @@ const components = {
     'fadeOnZoom': {},
     'followsEntity': {},
     'mesh': {},
-}
-
-
-
-
-exports.default = function (noa, opts) {
-    return new Entities(noa, opts)
-}
-
-
-
-var defaults = {
-    shadowDistance: 10,
 }
 
 
@@ -120,7 +114,7 @@ export class Entities extends ECS {
 
     /**
      * Returns the entity's `movement` component state
-     * @type {(id:number) => import('../components/movement').MovementState}
+     * @type {(id:number) => import('../components/movement').MovementSettings}
      * @prop getMovement
     */
 
@@ -144,139 +138,151 @@ export class Entities extends ECS {
      * @prop names
     */
 
-
-    /** @internal */
-    constructor(noa, opts) {
-        super()
-
-        this.noa = noa
-        opts = Object.assign({}, defaultOptions, opts)
-
-        // properties
-        /** Hash containing the component names of built-in components. */
-        this.names = {}
-
-        // optional arguments to supply to component creation functions
-        var componentArgs = {
-            'shadow': opts.shadowDistance,
-        }
-
-class Entities extends EntComp {
-
     constructor(noa, opts) {
         super()
         this.noa = noa
-        this.opts = Object.assign({}, defaults, opts)
+        this.opts = Object.assign({}, defaultOptions, opts)
     
         // properties
         /** Hash containing the component names of built-in components. */
         this.names = {}
-    }
-}
 
-exports.Entities = Entities
-// inherit from EntComp
-// Entities.prototype = Object.create(EntComp.prototype)
-// Entities.prototype.constructor = Entities
-
-/**
- * 
- * Create components needed client-side. Call assignFieldsAndHelpers() directly after.
- * 
- */
-Entities.prototype.createComponentsClient = function() {
-    // optional arguments to supply to component creation functions
-    var componentArgs = {
-        'shadow': this.opts.shadowDistance,
-    }
-    const reqContext = require.context('../components/', false, /\.js$/)
-    reqContext.keys().forEach(name => {
-        // convert name ('./foo.js') to bare name ('foo')
-        var bareName = /\.\/(.*)\.js/.exec(name)[1]
-        var arg = componentArgs[bareName] || undefined
-        var compFn = reqContext(name)
-        if (compFn.default) compFn = compFn.default
-        var compDef = compFn(this.noa, arg)
-        var comp = this.createComponent(compDef)
-        this.names[bareName] = comp
-    })
-}
-
-/**
- * 
- * Create components needed server-side. Call assignFieldsAndHelpers() directly after.
- * 
- */
-Entities.prototype.createComponentsServer = function() {
-    // optional arguments to supply to component creation functions
-    var componentArgs = {
-        'shadow': this.opts.shadowDistance,
-    }
-    for (const comp in components) {
-        if (components[comp].fn) {
-            if (components[comp].fn.default) {
-                components[comp].fn = components[comp].fn.default
-            }
-            this.createComponent(components[comp].fn(this.noa, componentArgs[comp]))
+        if (process.env.REACT_APP_IS_CLIENT === 'true') {
+            this.createComponentsClient()
         }
         else {
-            this.createComponent({name: comp}) // polyfill
+            this.createComponentsServer()
         }
-        this.names[comp] = comp
-    }
-}
-
-
-/**
- * 
- * Call directly after either calling either createComponentsClient or createComponentsServer
- * 
- */
-Entities.prototype.assignFieldsAndHelpers = function (noa) {
-    // decorate the entities object with accessor functions
-    /** @param id */
-    this.isPlayer = function (id) { return id === noa.playerEntity }
-
-    /** @param id */
-    this.hasPhysics = this.getComponentAccessor(this.names.physics)
-
-    /** @param id */
-    this.cameraSmoothed = this.getComponentAccessor(this.names.smoothCamera)
-
-    /** @param id */
-    this.hasMesh = this.getComponentAccessor(this.names.mesh)
-
-    // position functions
-    /** @param id */
-    this.hasPosition = this.getComponentAccessor(this.names.position)
-    var getPos = this.getStateAccessor(this.names.position)
-
-    /** @param id */
-    this.getPositionData = getPos
-
-    /** @param id */
-    this._localGetPosition = function (id) {
-        return getPos(id)._localPosition
+        this.assignFieldsAndHelpers()
     }
 
-    /** @param id */
-    this.getPosition = function (id) {
-        return getPos(id).position
-    }
-
-    /** @param id */
-    this._localSetPosition = function (id, pos) {
-        var posDat = getPos(id)
-        vec3.copy(posDat._localPosition, pos)
-        updateDerivedPositionData(id, posDat)
-    }
-
-    /** @param id, positionArr */
-    this.setPosition = (id, pos, _yarg, _zarg) => {
-        // check if called with "x, y, z" args
-        if (typeof pos === 'number') { 
-            pos = [pos, _yarg, _zarg]
+    /**
+     * 
+     * Create components needed client-side. Call assignFieldsAndHelpers() directly after.
+     * 
+     */
+    createComponentsClient() {
+        // optional arguments to supply to component creation functions
+        var componentArgs = {
+            'shadow': this.opts.shadowDistance,
         }
+        // @ts-ignore
+        const reqContext = require.context('../components/', false, /\.js$/)
+        reqContext.keys().forEach(name => {
+            // convert name ('./foo.js') to bare name ('foo')
+            var bareName = /\.\/(.*)\.js/.exec(name)[1]
+            var arg = componentArgs[bareName] || undefined
+            var compFn = reqContext(name)
+            if (compFn.default) compFn = compFn.default
+            var compDef = compFn(this.noa, arg)
+            var comp = this.createComponent(compDef)
+            this.names[bareName] = comp
+        })
+    }
+
+    /**
+     * 
+     * Create components needed server-side. Call assignFieldsAndHelpers() directly after.
+     * 
+     */
+    createComponentsServer() {
+        // optional arguments to supply to component creation functions
+        var componentArgs = {
+            'shadow': this.opts.shadowDistance,
+        }
+        for (const comp in components) {
+            if (components[comp].fn) {
+                if (components[comp].fn.default) {
+                    components[comp].fn = components[comp].fn.default
+                }
+                this.createComponent(components[comp].fn(this.noa, componentArgs[comp]))
+            }
+            else {
+                this.createComponent({name: comp}) // polyfill
+            }
+            this.names[comp] = comp
+        }
+    }
+
+
+    /**
+     * 
+     * Call directly after either calling either createComponentsClient or createComponentsServer
+     * 
+     */
+    assignFieldsAndHelpers() {
+        const noa = this.noa
+
+        // decorate the entities object with accessor functions
+        /** @param id */
+        this.isPlayer = function (id) { return id === noa.playerEntity }
+
+
+        // create some ECS state accessors
+        // (these are moderately faster than the general case APIs)
+
+        // general
+        this.hasPhysics = this.getComponentAccessor(this.names.physics)
+        this.cameraSmoothed = this.getComponentAccessor(this.names.smoothCamera)
+        this.hasPosition = this.getComponentAccessor(this.names.position)
+        this.hasMesh = this.getComponentAccessor(this.names.mesh)
+
+        // position
+        var getPos = this.getStateAccessor(this.names.position)
+        this.getPositionData = getPos
+        this.getPosition = (id) => getPos(id).position
+
+        // physics
+        var getPhys = this.getStateAccessor(this.names.physics)
+        this.getPhysics = getPhys
+        this.getPhysicsBody = (id) => getPhys(id).body
+
+        // misc
+        this.getMeshData = this.getStateAccessor(this.names.mesh)
+        this.getMovement = this.getStateAccessor(this.names.movement)
+        this.getCollideTerrain = this.getStateAccessor(this.names.collideTerrain)
+        this.getCollideEntities = this.getStateAccessor(this.names.collideEntities)
+
+        // Bloxd accessors
+        this.getMoveState = this.getStateAccessor(this.names.moveState)
+        this.getGenericPlayerState = null
+        this.getInventoryState = null
+        this.getInventory = null
+        this.getHeldItemState = null
+        this.getHeldItem = null
+        this.getPlayerMeshState = null
+        // bloxd
+
+        // pairwise collideEntities event - this is for client to override
+        // @ts-ignore
+        this.onPairwiseEntityCollision = function (id1, id2) {}
+    }
+
+
+
+    /*
+     * 
+     * 
+     *      PUBLIC ENTITY STATE ACCESSORS
+     * 
+     * 
+    */
+
+
+    /** Set an entity's position, and update all derived state.
+     * 
+     * In general, always use this to set an entity's position unless
+     * you're familiar with engine internals.
+     * 
+     * ```js
+     * noa.ents.setPosition(playerEntity, [5, 6, 7])
+     * noa.ents.setPosition(playerEntity, 5, 6, 7)  // also works
+     * ```
+     * 
+     * @param {number} id
+     */
+    setPosition(id, pos, y = 0, z = 0) {
+        if (typeof pos === 'number') pos = [pos, y, z]
         // convert to local and defer impl
         var loc = this.noa.globalToLocal(pos, null, [])
         this._localSetPosition(id, loc)
@@ -339,15 +345,27 @@ Entities.prototype.assignFieldsAndHelpers = function (noa) {
         if (physDat) setPhysicsFromPosition(physDat, posDat)
     }
 
+    /*
+     *
+     *
+     *      OTHER ENTITY MANAGEMENT APIs
+     * 
+     *      note most APIs are on the original ECS module (ent-comp)
+     *      these are some overlaid extras for noa
+     *
+     *
+    */
 
 
-
-    // misc
-    this.getMeshData = this.getStateAccessor(this.names.mesh)
-    this.getMovement = this.getStateAccessor(this.names.movement)
-    this.getMoveState = this.getStateAccessor(this.names.moveState)
-    this.getCollideTerrain = this.getStateAccessor(this.names.collideTerrain)
-    this.getCollideEntities = this.getStateAccessor(this.names.collideEntities)
+    /** 
+     * Safely add a component - if the entity already had the 
+     * component, this will remove and re-add it.
+    */
+    addComponentAgain(id, name, state) {
+        // removes component first if necessary
+        if (this.hasComponent(id, name)) this.removeComponent(id, name)
+        this.addComponent(id, name, state)
+    }
 
 
     /** 
@@ -382,8 +400,8 @@ Entities.prototype.assignFieldsAndHelpers = function (noa) {
         // extents to test against
         var off = this.noa.worldOriginOffset
         var testExtents = [
-            box.base[0] + off[0], box.base[1] + off[1], box.base[2] + off[2],
-            box.max[0] + off[0], box.max[1] + off[1], box.max[2] + off[2],
+            box.base[0] - off[0], box.base[1] - off[1], box.base[2] - off[2],
+            box.max[0] - off[0], box.max[1] - off[1], box.max[2] - off[2],
         ]
         // entity position state list
         var entStates
@@ -401,25 +419,25 @@ Entities.prototype.assignFieldsAndHelpers = function (noa) {
         var hits = []
         for (var i = 0; i < entStates.length; i++) {
             var state = entStates[i]
+            // console.log("Extents", testExtents, state._extents)
             if (extentsOverlap(testExtents, state._extents)) {
                 hits.push(state.__id)
             }
         }
+        // console.log(entStates, hits)
         return hits
     }
-
-
 
     /** 
      * Helper to set up a general entity, and populate with some common components depending on arguments.
     */
     add(position, width, height, // required
-        mesh, meshOffset, doPhysics, shadow) {
+        mesh, meshOffset, doPhysics, shadow, customEId) {
 
         var self = this
 
         // new entity
-        var eid = this.createEntity()
+        var eid = customEId || this.createEntity()
 
         // position component
         this.addComponent(eid, this.names.position, {
@@ -428,28 +446,11 @@ Entities.prototype.assignFieldsAndHelpers = function (noa) {
             height: height
         })
 
-/** @param box */
-Entities.prototype.getEntitiesInAABB = function (box, withComponent) {
-    // extents to test against
-    var off = this.noa.worldOriginOffset
-    var testExtents = [
-        box.base[0] - off[0], box.base[1] - off[1], box.base[2] - off[2],
-        box.max[0] - off[0], box.max[1] - off[1], box.max[2] - off[2],
-    ]
-    // entity position state list
-    var entStates = (withComponent) ?
-        this.getStatesList(withComponent).map(state => {
-            return this.getPositionData(state.__id)
-        }) : this.getStatesList(this.names.position)
-    // run each test
-    var hits = []
-    entStates.forEach(state => {
-        if (extentsOverlap(testExtents, state._extents)) {
-            hits.push(state.__id)
-        }
-    })
-    return hits
-}
+        // rigid body in physics simulator
+        if (doPhysics) {
+            // body = this.noa.physics.addBody(box)
+            this.addComponent(eid, this.names.physics)
+            var body = this.getPhysicsBody(eid)
 
             // handler for physics engine to call on auto-step
             var smoothName = this.names.smoothCamera
@@ -467,45 +468,15 @@ Entities.prototype.getEntitiesInAABB = function (box, withComponent) {
             })
         }
 
-/** 
- * Helper to set up a general entity, and populate with some common components depending on arguments.
- * 
- * Parameters: position, width, height [, mesh, meshOffset, doPhysics, shadow]
- * 
- * @param position
- * @param width
- * @param height..
- */
-Entities.prototype.add = function (position, width, height, // required
-    mesh, meshOffset, doPhysics, shadow, customEId) {
-
-    var self = this
-
-    // new entity
-    var eid = customEId || this.createEntity()
-
-    // position component
-    this.addComponent(eid, this.names.position, {
-        position: position || [0, 0, 0],
-        width: width,
-        height: height
-    })
-
-    // rigid body in physics simulator
-    if (doPhysics) {
-        // body = this.noa.physics.addBody(box)
-        this.addComponent(eid, this.names.physics)
-        var body = this.getPhysicsBody(eid)
-
-        // handler for physics engine to call on auto-step
-        var smoothName = this.names.smoothCamera
-        body.onStep = function () {
-            self.addComponentAgain(eid, smoothName)
+        // add shadow-drawing component
+        if (shadow) {
+            this.addComponent(eid, this.names.shadow, { size: width })
         }
 
         return eid
     }
 }
+
 
 
 /*
@@ -520,6 +491,7 @@ Entities.prototype.add = function (position, width, height, // required
 
 // safety helper - when rebasing, nudge extent away from 
 // voxel boudaries, so floating point error doesn't carry us accross
+// @ts-ignore
 function nudgePosition(pos, index, dmin, dmax, id) {
     var min = pos[index] + dmin
     var max = pos[index] + dmax
@@ -537,4 +509,3 @@ function extentsOverlap(extA, extB) {
     if (extA[5] < extB[2]) return false
     return true
 }
-

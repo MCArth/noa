@@ -1,4 +1,3 @@
-// import vec3 from 'gl-vec3'
 const vec3 = require('gl-vec3')
 
 exports.default = function (noa) {
