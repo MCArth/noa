@@ -57,7 +57,7 @@ export default function (noa, dist) {
                 var state = states[i]
                 var posState = noa.ents.getPositionData(state.__id)
                 var physState = noa.ents.getPhysics(state.__id)
-                var enabledCombinator
+                let enabledCombinator
                 if (noa.entities.hasComponent(state.__id, "genericPlayerState")) {
                     enabledCombinator = noa.entities.getState(state.__id, "genericPlayerState").shadowMeshEnabledCombinator
                 }
