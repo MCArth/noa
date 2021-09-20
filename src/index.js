@@ -335,11 +335,26 @@ export class Engine extends EventEmitter {
         }
 
         // bloxd start
-        this.serverSettings = {}
+        this.colyClient = undefined
+        this.GA = undefined
+        this.gaENums = undefined
         this.logErrorMessage = (str, err) => {throw err}
+
+        this.serverSettings = {}
+        this.otherPlayerSettings = {}
+        this.playerNames = {}
+
+        this.colyRoom = undefined
+        this.serverPlayerEntity = undefined
 
         this.actionOrigin = null
         this.actionDirection = null
+
+        // Setup in bloxd Sound.js
+        this.sounds = {
+            pvpSounds: null,
+            pvpSoundsTrackName: null,
+        }
 
         // util references used on server
         this.room = null
