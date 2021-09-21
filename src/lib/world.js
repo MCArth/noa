@@ -601,6 +601,12 @@ function markAllChunksForRemoval(world) {
     world._chunksToRequest.empty()
     world._chunksToMesh.empty()
     world._chunksToMeshFirst.empty()
+    // Bloxd start
+    // Remove all chunks in remove queue, so we can request chunks in the new world that were close to us.
+    while (!processRemoveQueue(world)) {
+    }
+    // the following code won't actually do anything anymore, leave it in for ease of merging.
+    // Bloxd end
     var loc = getPlayerChunkIndexes(world)
     sortQueueByDistanceFrom(world._chunksToRemove, loc[0], loc[1], loc[2])
 }
