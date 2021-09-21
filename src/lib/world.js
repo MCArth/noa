@@ -400,6 +400,8 @@ World.prototype.tick = function () {
         profile_hook('addQueue')
     }
 
+    var doMeshing = this.meshingTick === 3
+
     // process (create or mesh) some chunks, up to max iteration time
     var ptime = Math.max(0.5, this.maxProcessingPerTick)
     loopForTime(ptime, () => {
@@ -409,7 +411,7 @@ World.prototype.tick = function () {
         profile_hook('removes')
         // bloxd start - Only attempt to mesh things every third tick. 
         // Do this so if we're playing catch up in micro-game-shell, we don't mesh multiple ticks in a row without leaving space for a render.
-        if (this.meshingTick === 3) {
+        if (doMeshing) {
             done = done && processMeshingQueue(this, false)
             this.meshingTick = 0
             profile_hook('meshes')
@@ -418,20 +420,23 @@ World.prototype.tick = function () {
         return done
     }, tickStartTime)
 
-    this.meshingTick++ // bloxd change - Don't mesh things every tick
 
-    // when time is left over, look for low-priority extra meshing
-    var dt = performance.now() - tickStartTime
-    ptime -= dt
-    if (ptime > 0.5) {
-        lookForChunksToMesh(this)
-        profile_hook('looking')
-        loopForTime(ptime, () => {
-            var done = processMeshingQueue(this, false)
-            profile_hook('meshes')
-            return done
-        }, tickStartTime)
+    if (doMeshing) {
+        // when time is left over, look for low-priority extra meshing
+        var dt = performance.now() - tickStartTime
+        ptime -= dt
+        if (ptime > 0.5) {
+            lookForChunksToMesh(this)
+            profile_hook('looking')
+            loopForTime(ptime, () => {
+                var done = processMeshingQueue(this, false)
+                profile_hook('meshes')
+                return done
+            }, tickStartTime)
+        }
     }
+
+    this.meshingTick++ // bloxd change - Don't mesh things every tick
 
     // track whether the player's local chunk is loaded and ready or not
     var pChunk = this._storage.getChunkByIndexes(ci, cj, ck)
