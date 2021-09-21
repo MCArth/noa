@@ -120,7 +120,7 @@ export class World extends EventEmitter {
         this.walkThroughType = new Set()
         this.walkThroughRect = []
 
-        this.meshingTick = 0 // bloxd change
+        this.meshingTick = 1 // bloxd change
     }
 }
 
@@ -409,7 +409,7 @@ World.prototype.tick = function () {
         profile_hook('removes')
         // bloxd start - Only attempt to mesh things every third tick. 
         // Do this so if we're playing catch up in micro-game-shell, we don't mesh multiple ticks in a row without leaving space for a render.
-        if (this.meshingTick === 2) {
+        if (this.meshingTick === 3) {
             done = done && processMeshingQueue(this, false)
             this.meshingTick = 0
             profile_hook('meshes')
