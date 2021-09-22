@@ -299,7 +299,11 @@ Rendering.prototype.makeStandardMaterial = function (name) {
 }
 
 /** Exposed hook for if the client wants to do something to newly created materials */
-Rendering.prototype.postMaterialCreationHook = function (mat) { }
+// bloxd change start - call mat.freeze()
+Rendering.prototype.postMaterialCreationHook = function (mat) { 
+    mat.freeze()
+}
+// bloxd change end
 
 
 
