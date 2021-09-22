@@ -19,6 +19,8 @@ export default function (noa) {
             joystickHeading: null,
             isTouchscreen: false,
 
+            canRunCombinator: null,
+
             _moving: false, // whether player is moving at all. Only relevant for keyboard input.
             _running: false, // whether player is running. Only relevant for keyboard input.
             _lastForwardPress: null
@@ -38,7 +40,7 @@ export default function (noa) {
 
                 // if player also pressed w/forward recently then they start running
                 if (new Date().getTime() - state._lastForwardPress < state.doublePressRunInterval) {
-                    moveState.running = true
+                    state._running = true
                 }
                 state._lastForwardPress = new Date().getTime()
             })
@@ -102,7 +104,9 @@ function setMovementState(serverSettings, state, inputs, keyboardMoverState, cam
         keyboardMoverState._moving = true
 
         // pressing shift so start running
-        if (inputs.sprint) {
+        if (!keyboardMoverState.canRunCombinator.getTotalBooleanVal()) {
+            keyboardMoverState._running = false
+        } else if (inputs.sprint) {
             keyboardMoverState._running = true
         }
 
