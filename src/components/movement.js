@@ -11,8 +11,8 @@ const vec3 = require('gl-vec3')
 export function MovementSettings() {
     // options:
     this.maxSpeed = 4
-    this.moveForce = 50
-    this.responsiveness = 10
+    this.moveForce = 50 // Increasing this amount means your top speed is higher. Influences the magnitude of the movement if not capped by responsiveness.
+    this.responsiveness = 10 // Increasing this means you accelerate to top speed faster. Influences the magnitude the movement is capped at.
     this.movingFriction = 0
     this.standingFriction = 5
 
@@ -119,35 +119,34 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
     }
 
     // apply movement forces if entity is moving, otherwise just friction
-    var m = tempvec
-    var push = tempvec2
+    var maxAmountToMove = tempvec
+    var amountToActuallyMove = tempvec2
     if (moveState.speed) {
         var speed = moveState.speed*moveState.speedMultiplier.getTotalMultipliedVal()
 
-        vec3.set(m, 0, 0, speed)
+        vec3.set(maxAmountToMove, 0, 0, speed)
 
         // rotate move vector to entity's heading
-        vec3.rotateY(m, m, zeroVec, moveState.heading)
+        vec3.rotateY(maxAmountToMove, maxAmountToMove, zeroVec, moveState.heading)
 
         // push vector to achieve desired speed & dir
         // following code to adjust 2D velocity to desired amount is patterned on Quake: 
         // https://github.com/id-Software/Quake-III-Arena/blob/master/code/game/bg_pmove.c#L275
-        vec3.subtract(push, m, body.velocity)
-        push[1] = 0
-        var pushLen = vec3.length(push)
-        vec3.normalize(push, push)
+        vec3.subtract(amountToActuallyMove, maxAmountToMove, body.velocity)
+        amountToActuallyMove[1] = 0
+        var pushLen = vec3.length(amountToActuallyMove)
+        vec3.normalize(amountToActuallyMove, amountToActuallyMove)
 
         if (pushLen > 0) {
             // pushing force vector
-            var canPush = state.moveForce
-            if (!onGround) canPush *= state.airMoveMult
+            var magnitudeToMove = state.moveForce
+            if (!onGround) magnitudeToMove *= state.airMoveMult
 
-            // pushAmt is the max push amount
-            var pushAmt = state.responsiveness * pushLen
-            if (canPush > pushAmt) canPush = pushAmt
+            var maxMagnitude = state.responsiveness * pushLen
+            if (magnitudeToMove > maxMagnitude) magnitudeToMove = maxMagnitude
 
-            vec3.scale(push, push, canPush)
-            body.applyForce(push)
+            vec3.scale(amountToActuallyMove, amountToActuallyMove, magnitudeToMove)
+            body.applyForce(amountToActuallyMove)
         }
 
         // different friction when not moving
