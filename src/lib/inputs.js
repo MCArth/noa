@@ -1,6 +1,5 @@
 
 import makeInputs from 'game-inputs'
-// import { Inputs as GameInputs } from '../../../../npm-modules/game-inputs'
 
 
 
