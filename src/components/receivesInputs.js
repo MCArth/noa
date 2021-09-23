@@ -15,7 +15,7 @@ export default function (noa) {
         order: 20,
 
         state: {
-            doublePressRunInterval: 500,
+            doublePressRunInterval: 300,
             joystickHeading: null,
             isTouchscreen: false,
 
