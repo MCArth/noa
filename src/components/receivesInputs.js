@@ -15,7 +15,6 @@ export default function (noa) {
         order: 20,
 
         state: {
-            doublePressRunInterval: 300,
             joystickHeading: null,
             isTouchscreen: false,
 
@@ -23,33 +22,9 @@ export default function (noa) {
 
             _moving: false, // whether player is moving at all. Only relevant for keyboard input.
             _running: false, // whether player is running. Only relevant for keyboard input.
-            _lastForwardPress: null
         },
 
         onAdd: function registerForwardListener(eid, state) {
-
-
-            noa.inputs.down.on('forward', () => {
-                const moveState = noa.ents.getMoveState(eid)
-                const inputState = noa.inputs.state
-
-
-                if (inputState.backward) { // can't start running while also going back!
-                    return
-                }
-
-                // if player also pressed w/forward recently then they start running
-                if (new Date().getTime() - state._lastForwardPress < state.doublePressRunInterval) {
-                    state._running = true
-                }
-                state._lastForwardPress = new Date().getTime()
-            })
-
-            noa.inputs.down.on('sprint', () => {
-                const inputState = noa.inputs.state
-                if (inputState.forward && !inputState.backward) {
-                }
-            })
         },
 
         onRemove: null,
