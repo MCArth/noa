@@ -47,9 +47,6 @@ export class SceneOctreeManager {
         }
 
         this.addMesh = (mesh, isStatic, pos, chunk) => {
-            if (mesh.metadata === null) {
-                mesh.metadata = {}
-            }
             if (!isStatic) {
                 mesh.metadata._noaIsDynamicContent = true
                 octree.dynamicContent.push(mesh)
