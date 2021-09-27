@@ -68,6 +68,12 @@ var defaults = {
  * ```
 */
 
+function MeshMetadataType() {
+    this.markAsDirtyOnRebase = false
+    this._noaIsDynamicContent = false
+    this._noaContainingBlock = null
+}
+
 export class Rendering {
 
     /** @internal @prop _scene */
@@ -96,6 +102,10 @@ export class Rendering {
         this._octree = null
         this._octreeManager = null
         initScene(this, canvas, opts)
+
+        // bloxd start
+        this.MeshMetadataType = MeshMetadataType
+        // bloxd end
 
         // for debugging
         if (opts.showFPS) setUpFPS()
@@ -268,14 +278,18 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = nul
 
     mesh.isPickable = isPickable
 
+    // bloxd start
+    if (!mesh.metadata) {
+        mesh.metadata = new MeshMetadataType()
+    }
+    // bloxd end
+
     // add to the octree, and add dispose handler to remove it
     this._octreeManager.addMesh(mesh, isStatic, pos, containingChunk)
     mesh.onDisposeObservable.add(() => {
         this._octreeManager.removeMesh(mesh)
     })
 }
-
-
 
 
 
@@ -357,6 +371,9 @@ Rendering.prototype._rebaseOrigin = function (delta) {
 
         // move each mesh by delta (even though most are managed by components)
         mesh.position.subtractInPlace(dvec)
+        if (mesh.metadata && mesh.metadata.markAsDirtyOnRebase) {
+            mesh.markAsDirty()
+        }
 
         if (mesh._isWorldMatrixFrozen) {
             // paradoxically this unfreezes, then re-freezes the matrix
