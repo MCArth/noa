@@ -284,9 +284,9 @@ World.prototype.tick = function () {
 
     // if world has changed, mark everything to be removed and re-requested
     if (this._cachedWorldName !== this.noa.worldName) {
-        markAllChunksForRemoval(this)
+        this.markAllChunksForRemoval()
         this._cachedWorldName = this.noa.worldName
-        this._chunkAddSearchDistance = 0
+        // this._chunkAddSearchDistance = 0 // Bloxd change - not needed as we added it to markAllChunksForRemoval
     }
 
     // base logic around indexes of player's current chunk
@@ -504,21 +504,24 @@ function invalidateChunksInBox(world, box) {
 }
 
 // when current world changes - empty work queues and mark all for removal
-function markAllChunksForRemoval(world) {
-    world._chunksToRemove.copyFrom(world._chunksKnown)
-    world._chunksToRequest.empty()
-    world._chunksToMesh.empty()
-    world._chunksToMeshFirst.empty()
+// bloxd change start - make it a member function
+World.prototype.markAllChunksForRemoval = function () {
+    this._chunksToRemove.copyFrom(this._chunksKnown)
+    this._chunksToRequest.empty()
+    this._chunksToMesh.empty()
+    this._chunksToMeshFirst.empty()
     // Bloxd start
     // Remove all chunks in remove queue, so we can request chunks in the new world that were close to us.
-    while (!processRemoveQueue(world)) {
+    while (!processRemoveQueue(this)) { // If we change to not do this, we will need to change resetMap in bloxd worldGen
     }
     // the following code won't actually do anything anymore, leave it in for ease of merging.
     // Bloxd end
-    var loc = getPlayerChunkIndexes(world)
-    sortQueueByDistanceFrom(world._chunksToRemove, loc[0], loc[1], loc[2])
-}
+    var loc = getPlayerChunkIndexes(this)
+    sortQueueByDistanceFrom(this._chunksToRemove, loc[0], loc[1], loc[2])
 
+    this._chunkAddSearchDistance = 0 // bloxd change - add this in so we get it when calling this from resetMap
+}
+// bloxd change end
 
 // incrementally look for chunks that could be re-meshed
 function lookForChunksToMesh(world) {
