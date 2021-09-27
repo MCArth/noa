@@ -277,6 +277,10 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = nul
     }
 
     mesh.isPickable = isPickable
+    if (!isPickable) {
+        mesh.doNotSyncBoundingInfo = true
+        mesh.alwaysSelectAsActiveMesh = true
+    }
 
     // bloxd start
     if (!mesh.metadata) {
