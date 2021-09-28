@@ -242,15 +242,20 @@ export class Entities extends ECS {
         this.getMovement = this.getStateAccessor(this.names.movement)
         this.getCollideTerrain = this.getStateAccessor(this.names.collideTerrain)
         this.getCollideEntities = this.getStateAccessor(this.names.collideEntities)
+        this.getMoveState = this.getStateAccessor(this.names.moveState)
 
         // Bloxd accessors
-        this.getMoveState = this.getStateAccessor(this.names.moveState)
         this.getGenericPlayerState = null
-        this.getInventoryState = null
-        this.getInventory = null
         this.getHeldItemState = null
         this.getHeldItem = null
         this.getPlayerMeshState = null
+        this.getPlayerRotation = null
+        this.getHitboxState = null
+        this.getReceivesInputs = null
+
+        this.getInventoryState = null
+        this.getInventory = null
+        this.hasInventory = null
         // bloxd
 
         // pairwise collideEntities event - this is for client to override
