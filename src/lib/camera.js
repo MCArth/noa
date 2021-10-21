@@ -158,6 +158,16 @@ export class Camera {
         Object.defineProperty(this, 'currentZoom', { get: () => this._currentZoom })
 
         this._dirVector = vec3.fromValues(0, 0, 1)
+
+        this.targetX = 0
+        this.targetY = 0
+
+        this._kickbackDiffToApply = 0
+        this._kickbackDecreaseRate = 0
+
+        this.previousZoom = 0
+        // this._kickbackIncreaseRate = 0
+        // bloxd end
     }
 
     /** 
@@ -207,8 +217,6 @@ export class Camera {
         var globalCamPos = tempVectors[1]
         return this.noa.localToGlobal(loc, globalCamPos)
     }
-
-        this.currentZoom = opts.initialZoom
 
     /**
      * Returns the current camera position (read only)

@@ -388,10 +388,6 @@ export class Engine extends EventEmitter {
         deprecateStuff(this)
     }
 
-        // add hooks to throw helpful errors when using deprecated methods
-        deprecateStuff(this)
-    }
-
 
     /*
      *
