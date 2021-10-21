@@ -274,14 +274,6 @@ export class Camera {
     }
 
 
-    /** @internal */
-    updateAfterEntityRenderSystems() {
-        // clamp camera zoom not to clip into solid terrain
-        var maxZoom = cameraObstructionDistance(this)
-        if (this._currentZoom > maxZoom) this._currentZoom = maxZoom
-    }
-
-
     /*
      * 
      * 

@@ -627,30 +627,6 @@ export class Engine extends EventEmitter {
         }
     }
 
-    /** 
-     * Sets the voxel ID at the specified position. 
-     * Does not check whether any entities are in the way! 
-     */
-    setBlock(id, x, y = 0, z = 0) {
-        if (x.length) return this.world.setBlockID(x[0], x[1], x[2])
-        return this.world.setBlockID(id, x, y, z)
-    }
-
-    /**
-     * Adds a block, unless there's an entity in the way.
-    */
-    addBlock(id, x, y = 0, z = 0) {
-        // add a new terrain block, if nothing blocks the terrain there
-        if (x.length) {
-            if (this.entities.isTerrainBlocked(x[0], x[1], x[2])) return
-            this.world.setBlockID(id, x[0], x[1], x[2])
-            return id
-        } else {
-            if (this.entities.isTerrainBlocked(x, y, z)) return
-            this.world.setBlockID(id, x, y, z)
-            return id
-        }
-    }
 
 
 

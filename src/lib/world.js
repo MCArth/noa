@@ -271,15 +271,6 @@ World.prototype.invalidateVoxelsInAABB = function (box) {
     invalidateChunksInBox(this, box)
 }
 
-/**
- * Tell noa to re-request a chunk
- * 
- * @param {*} chunkId 
- */
-World.prototype.invalidateChunk = function (chunkId) {
-    invalidateChunk(this, chunkId)
-}
-
 /** When manually controlling chunk loading, tells the engine that the 
  * chunk containing the specified (x,y,z) needs to be created and loaded.
  * > Note: has no effect when `noa.world.manuallyControlChunkLoading` is not set.
