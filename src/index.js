@@ -5,21 +5,21 @@
  * @license  MIT
  */
 
-var vec3 = require('gl-vec3')
-var ndarray = require('ndarray')
-var raycast = require('fast-voxel-raycast')
-var EventEmitter = require('events').EventEmitter
+import vec3 from 'gl-vec3'
+import ndarray from 'ndarray'
+import { EventEmitter } from 'events'
+import raycast from 'fast-voxel-raycast'
 
-import { Container } from './lib/container'
-import { Rendering } from './lib/rendering'
-import { World } from './lib/world'
 import { createInputs } from './lib/inputs'
-import { Physics } from './lib/physics'
+import { Container } from './lib/container'
 import { Camera } from './lib/camera'
-import { Registry } from './lib/registry'
 import { Entities } from './lib/entities'
 import ObjectMesher from './lib/objectMesher'
 import TerrainMesher from './lib/terrainMesher'
+import { Registry } from './lib/registry'
+import { Rendering } from './lib/rendering'
+import { Physics } from './lib/physics'
+import { World } from './lib/world'
 import { locationHasher } from './lib/util'
 
 
@@ -199,6 +199,7 @@ export class Engine extends EventEmitter {
     /** @internal @prop _pickPos */
     /** @internal @prop _pickResult */
 
+
     /** `vec3` class used throughout the engine
      * @type {vec3}
      * @prop vec3 */
@@ -292,6 +293,7 @@ export class Engine extends EventEmitter {
 
         // make player entity it collide with terrain and other entities
         var ents = this.ents
+        ents.addComponent(this.playerEntity, ents.names.collideTerrain)
         ents.addComponent(this.playerEntity, ents.names.collideEntities)
 
         // adjust default physics parameters
@@ -306,60 +308,31 @@ export class Engine extends EventEmitter {
         ents.addComponent(this.playerEntity, ents.names.fadeOnZoom)
 
         // movement component - applies movement forces
-        ents.addComponent(this.playerEntity, ents.names.movement)
+        ents.addComponent(this.playerEntity, ents.names.movement, {
+            airJumps: 1
+        })
+
 
         this.camera = new Camera(this, opts)
+
 
         this.blockTestDistance = opts.blockTestDistance
         this.blockTargetIdCheck = this.registry.getBlockSolidity
         this.targetedBlock = null
 
+
         // add a default block highlighting function
         if (!opts.skipDefaultHighlighting) {
             // the default listener, defined onto noa in case people want to remove it later
             this.defaultBlockHighlightFunction = (tgt) => {
-                if (!tgt
-                    || (!this.serverSettings.canChange
-                        && !this.world.canChangeBlock(tgt.position)
-                        && !this.world.canChangeBlock(tgt.adjacent))
-                    || (this.entities.hasComponent(this.playerEntity, 'heldItem')
-                        && this.entities.getState(this.playerEntity, 'heldItem').heldItem.canPlaceOrBreakBlock === false
-                    )
-                ) {
-                    this.rendering.highlightBlockFace(false)
-                } else {
+                if (tgt) {
                     this.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
+                } else {
+                    this.rendering.highlightBlockFace(false)
                 }
             }
             this.on('targetBlockChanged', this.defaultBlockHighlightFunction)
         }
-
-        // bloxd start
-        this.colyClient = undefined
-        this.GA = undefined
-        this.gaENums = undefined
-        this.logErrorMessage = (str, err) => {throw err}
-
-        this.serverSettings = {}
-        this.otherPlayerSettings = {}
-        this.playerNames = {}
-
-        this.colyRoom = undefined
-        this.serverPlayerEntity = undefined
-
-        this.actionOrigin = null
-        this.actionDirection = null
-
-        // Setup in bloxd Sound.js
-        this.sounds = {
-            pvpSounds: null,
-            pvpSoundsTrackName: null,
-        }
-
-        // util references used on server
-        this.room = null
-        this.pluginApi = null
-        // bloxd end
 
         // various internals
         this._terrainMesher = new TerrainMesher(this)
@@ -387,8 +360,17 @@ export class Engine extends EventEmitter {
             normal: [0, 0, 0],
         }
 
+        // util references used on server
+        this.room = null
+        this.pluginApi = null
+        // bloxd end
+
+
+
+
         // temp hacks for development
-        if (opts.debug) {            
+        if (opts.debug) {
+
             // expose often-used classes
             this.vec3 = vec3
             this.ndarray = ndarray
@@ -406,52 +388,9 @@ export class Engine extends EventEmitter {
         deprecateStuff(this)
     }
 
-
-
-
-/**
- * Tick function, called by container module at a fixed timestep. 
- * Clients should not normally need to call this manually.
- * @internal
-*/
-    tick(dt) {
-        try {
-            // note dt is a fixed value, not an observed delay
-            if (this._paused) {
-                if (this.world.worldGenWhilePaused) this.world.tick()
-                return
-            }
-            profile_hook('start')
-            checkWorldOffset(this)
-            this.world.tick() // chunk creation/removal
-            profile_hook('world')
-            if (!this.world.playerChunkLoaded) {
-                // when waiting on worldgen, just tick the meshing queue and exit
-                this.rendering.tick(dt)
-                return
-            }
-            this.physics.tick(dt) // iterates physics
-            profile_hook('physics')
-            this._objectMesher.tick() // rebuild objects if needed
-            this.rendering.tick(dt) // does deferred chunk meshing
-            profile_hook('rendering')
-            this.updateBlockTargets() // finds targeted blocks, and highlights one if needed
-            profile_hook('targets')
-            this.entities.tick(dt) // runs all entity systems
-            profile_hook('entities')
-            this.emit('tick', dt)
-            profile_hook('tick event')
-            profile_hook('end')
-            // clear accumulated scroll inputs (mouseMove is cleared on render)
-            var st = this.inputs.state
-            st.scrollx = st.scrolly = st.scrollz = 0
-        }
-        catch(e) {
-            this.logErrorMessage("Error in noa tickloop", e)
-        }
+        // add hooks to throw helpful errors when using deprecated methods
+        deprecateStuff(this)
     }
-
-
 
 
     /*
@@ -461,6 +400,48 @@ export class Engine extends EventEmitter {
      *
      *
     */
+
+    /**
+     * Tick function, called by container module at a fixed timestep. 
+     * Clients should not normally need to call this manually.
+     * @internal
+    */
+
+    tick(dt) {
+        // note dt is a fixed value, not an observed delay
+        if (this._paused) {
+            if (this.world.worldGenWhilePaused) this.world.tick()
+            return
+        }
+        profile_hook('start')
+        checkWorldOffset(this)
+        this.world.tick() // chunk creation/removal
+        profile_hook('world')
+        if (!this.world.playerChunkLoaded) {
+            // when waiting on worldgen, just tick the meshing queue and exit
+            this.rendering.tick(dt)
+            return
+        }
+        this.physics.tick(dt) // iterates physics
+        profile_hook('physics')
+        this._objectMesher.tick() // rebuild objects if needed
+        this.rendering.tick(dt) // does deferred chunk meshing
+        profile_hook('rendering')
+        updateBlockTargets(this) // finds targeted blocks, and highlights one if needed
+        profile_hook('targets')
+        this.entities.tick(dt) // runs all entity systems
+        profile_hook('entities')
+        this.emit('tick', dt)
+        profile_hook('tick event')
+        profile_hook('end')
+        // clear accumulated scroll inputs (mouseMove is cleared on render)
+        var st = this.inputs.state
+        st.scrollx = st.scrolly = st.scrollz = 0
+    }
+
+
+
+
     /**
      * Render function, called every animation frame. Emits #beforeRender(dt), #afterRender(dt) 
      * where dt is the time in ms *since the last tick*.
@@ -468,59 +449,64 @@ export class Engine extends EventEmitter {
      * @internal
     */
     render(dt, framePart) {
-        try {
-            // note: framePart is how far we are into the current tick
-            // dt is the *actual* time (ms) since last render, for
-            // animating things that aren't tied to game tick rate
+        // note: framePart is how far we are into the current tick
+        // dt is the *actual* time (ms) since last render, for
+        // animating things that aren't tied to game tick rate
 
-            // frame position - for rendering movement between ticks
-            this.positionInCurrentTick = framePart
+        // frame position - for rendering movement between ticks
+        this.positionInCurrentTick = framePart
 
-            // when paused, just optionally ping worldgen, then exit
-            if (this._paused) {
-                if (this.world.worldGenWhilePaused) this.world.render()
-                return
-            }
-
-            profile_hook_render('start')
-            // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
-            if (this.container.hasPointerLock ||
-                !this.container.supportsPointerLock ||
-                (this._dragOutsideLock && this.inputs.state.fire)) {
-                this.camera.applyInputsToCamera()
-            }
-            profile_hook('init')
-
-            // brief run through meshing queue
-            this.world.render()
-            profile_hook_render('meshing')
-
-            // entity render systems
-            this.camera.updateBeforeEntityRenderSystems(dt)
-            this.entities.render(dt)
-            this.camera.updateAfterEntityRenderSystems()
-            profile_hook('entities')
-
-            // events and render
-            this.emit('beforeRender', dt)
-            profile_hook_render('before render')
-
-            this.rendering.render()
-            this.rendering.postRender()
-            profile_hook_render('render')
-
-            this.emit('afterRender', dt)
-            profile_hook_render('after render')
-            profile_hook_render('end')
-
-            // clear accumulated mouseMove inputs (scroll inputs cleared on render)
-            this.inputs.state.dx = this.inputs.state.dy = 0
+        // when paused, just optionally ping worldgen, then exit
+        if (this._paused) {
+            if (this.world.worldGenWhilePaused) this.world.render()
+            return
         }
-        catch(e) {
-            this.logErrorMessage("Error in noa renderloop", e)
+
+        profile_hook_render('start')
+
+        // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
+        if (this.container.hasPointerLock ||
+            !this.container.supportsPointerLock ||
+            (this._dragOutsideLock && this.inputs.state.fire)) {
+            this.camera.applyInputsToCamera()
         }
+        profile_hook_render('init')
+
+        // brief run through meshing queue
+        this.world.render()
+        profile_hook_render('meshing')
+
+        // entity render systems
+        this.camera.updateBeforeEntityRenderSystems()
+        this.entities.render(dt)
+        this.camera.updateAfterEntityRenderSystems()
+        profile_hook_render('entities')
+
+        // events and render
+        this.emit('beforeRender', dt)
+        profile_hook_render('before render')
+
+        this.rendering.render()
+        this.rendering.postRender()
+        profile_hook_render('render')
+
+        this.emit('afterRender', dt)
+        profile_hook_render('after render')
+        profile_hook_render('end')
+
+        // clear accumulated mouseMove inputs (scroll inputs cleared on render)
+        this.inputs.state.dx = this.inputs.state.dy = 0
     }
 
+
+
+    /** 
+     * Get the voxel ID at the specified position
+    */
+    getBlock(x, y = 0, z = 0) {
+        if (x.length) return this.world.getBlockID(x[0], x[1], x[2])
+        return this.world.getBlockID(x, y, z)
+    }
 
     /** Pausing the engine will also stop render/tick events, etc. */
     setPaused(paused = false) {
@@ -544,7 +530,7 @@ export class Engine extends EventEmitter {
      * Does not check whether any entities are in the way! 
      */
     setBlock(id, x, y = 0, z = 0) {
-        if (x.length) return this.world.setBlockID(id, x[0], x[1], x[2])
+        if (x.length) return this.world.setBlockID(x[0], x[1], x[2])
         return this.world.setBlockID(id, x, y, z)
     }
 
@@ -570,6 +556,9 @@ export class Engine extends EventEmitter {
 
 
 
+    /*
+     *   Rebasing local <-> global coords
+    */
 
     /*
      *   Rebasing local <-> global coords
@@ -699,46 +688,6 @@ export class Engine extends EventEmitter {
         return result
     }
 
-    pickBlock(pos, vec, dist, blockIdTestFunction) {
-        var blockInfo = {
-            blockID: 0,
-            position: [],
-            normal: [],
-            adjacent: [],
-        }
-        var result = this.pick(pos, vec, dist, blockIdTestFunction)
-        if (result) {
-            pickResultIntoBlockInfo(this, result, blockInfo)
-            return blockInfo
-        }
-        else {
-            return null
-        }
-    }
-
-    // Each frame, by default pick along the player's view vector 
-    // and tell rendering to highlight the struck block face
-    updateBlockTargets(forceHighlightUpdate=false) {
-        var newhash = 0
-        var blockIdFn = this.blockTargetIdCheck || this.registry.getBlockSolidity
-
-        let origin = this.actionOrigin // if undefined, _localPick will default to camera pos
-        let direction = this.actionDirection // if undefined, _localPick will default to camera direction
-
-        var result = this._localPick(origin, direction, null, blockIdFn)
-        if (result) {
-            var dat = this._targetedBlockDat
-            pickResultIntoBlockInfo(this, result, dat)
-            this.targetedBlock = dat
-            newhash = this.makeTargetHash(dat.position, dat.normal, dat.blockID)
-        } else {
-            this.targetedBlock = null
-        }
-        if (newhash != this._prevTargetHash || forceHighlightUpdate) {
-            this.emit('targetBlockChanged', this.targetedBlock)
-            this._prevTargetHash = newhash
-        }
-    }
 }
 
 
@@ -755,6 +704,15 @@ export class Engine extends EventEmitter {
 */
 
 
+    /**
+     * Do a raycast in local coords. 
+     * See `/docs/positions.md` for more info.
+     * @param {number[]} pos where to pick from (default: player's eye pos)
+     * @param {number[]} dir direction to pick along (default: camera vector)
+     * @param {number} dist pick distance (default: `noa.blockTestDistance`)
+     * @param {(id:number) => boolean} blockTestFunction which voxel IDs can be picked (default: any solid voxel)
+     * @returns {PickResult}
+     */
 
 
 /*
@@ -778,6 +736,44 @@ function checkWorldOffset(noa) {
 
 
 
+/*
+ * 
+ * 
+ * 
+ *                  INTERNAL HELPERS
+ * 
+ * 
+ * 
+ * 
+*/
+
+
+// Each frame, by default pick along the player's view vector 
+// and tell rendering to highlight the struck block face
+function updateBlockTargets(noa) {
+    var newhash = 0
+    var blockIdFn = noa.blockTargetIdCheck || noa.registry.getBlockSolidity
+    var result = noa._localPick(null, null, null, blockIdFn)
+    if (result) {
+        var dat = noa._targetedBlockDat
+        // pick stops just shy of voxel boundary, so floored pos is the adjacent voxel
+        vec3.floor(dat.adjacent, result.position)
+        vec3.copy(dat.normal, result.normal)
+        vec3.subtract(dat.position, dat.adjacent, dat.normal)
+        dat.blockID = noa.world.getBlockID(dat.position[0], dat.position[1], dat.position[2])
+        noa.targetedBlock = dat
+        newhash = noa.makeTargetHash(dat.position, dat.normal, dat.blockID, locationHasher)
+    } else {
+        noa.targetedBlock = null
+    }
+    if (newhash != noa._prevTargetHash) {
+        noa.emit('targetBlockChanged', noa.targetedBlock)
+        noa._prevTargetHash = newhash
+    }
+    noa.rendering._rebaseOrigin(delta)
+    noa.entities._rebaseOrigin(delta)
+    noa._objectMesher._rebaseOrigin(delta)
+}
 
 
 function pickResultIntoBlockInfo(noa, pickResult, blockInfoObj) {

@@ -108,19 +108,6 @@ export class World extends EventEmitter {
             this._coordsToChunkIndexes = chunkCoordsToIndexesPowerOfTwo
             this._coordsToChunkLocals = chunkCoordsToLocalsPowerOfTwo
         }
-
-        // can Change permissions
-        this.canChangeBlockCoord = new Set()
-        this.canChangeBlockType = new Set()
-        this.canChangeBlockRect = []
-        this.cantChangeBlockCoord = new Set()
-        this.cantChangeBlockType = new Set()
-        this.cantChangeBlockRect = []
-
-        this.walkThroughType = new Set()
-        this.walkThroughRect = []
-
-        this.meshingTick = 1 // bloxd change
     }
 }
 
@@ -154,31 +141,8 @@ World.prototype.getBlockSolidity = function (x, y, z) {
     var [ci, cj, ck] = this._coordsToChunkIndexes(x, y, z)
     var chunk = this._storage.getChunkByIndexes(ci, cj, ck)
     if (!chunk) return false
-
     var [i, j, k] = this._coordsToChunkLocals(x, y, z)
-
-    const id = chunk.get(i, j, k)
-    
-    if (id === 0) {
-        return false
-    }
-
-    if (this.walkThroughType.has(id)) {
-        return false
-    }
-
-    for (var rect of this.walkThroughRect) {
-        if (posWithinRect([x, y, z], rect)) {
-            return false
-        }
-    }
-
-    // check for fluid
-    if (!chunk.getSolidityAt(i, j, k)) {
-        return false
-    }
-
-    return true
+    return !!chunk.getSolidityAt(i, j, k)
 }
 
 /** @param x,y,z */
@@ -297,7 +261,7 @@ World.prototype.manuallyLoadChunk = function (x, y, z) {
  * > Note: has no effect when `noa.world.manuallyControlChunkLoading` is not set.
  * @param x, y, z
  */
- World.prototype.manuallyUnloadChunk = function (x, y, z) {
+World.prototype.manuallyUnloadChunk = function (x, y, z) {
     if (!this.manuallyControlChunkLoading) throw manualErr
     var [i, j, k] = this._coordsToChunkIndexes(x, y, z)
     this._chunksToRemove.add(i, j, k)
@@ -306,48 +270,6 @@ World.prototype.manuallyLoadChunk = function (x, y, z) {
     this._chunksToMeshFirst.remove(i, j, k)
 }
 var manualErr = 'Set `noa.world.manuallyControlChunkLoading` if you need this API'
-
-function posWithinRect(pos, [lx, ly, lz, hx, hy, hz]) {
-    return pos[0] >= lx && pos[1] >= ly && pos[2] >= lz && pos[0] <= hx && pos[1] <= hy && pos[2] <= hz
-}
-
-function posSatisfiesModifyConstraints(noaWorld, pos, coordSet, oppCoordSet, typeSet, oppTypeSet, rectList, defaultReturn) {
-    const posId = pos.join('|')
-    if (coordSet.has(posId)) {
-        return defaultReturn
-    }
-    if (oppCoordSet.has(posId)) {
-        return !defaultReturn
-    }
-    if (typeSet.has(noaWorld.getBlockID(pos[0], pos[1], pos[2]))) {
-        return defaultReturn
-    }
-    if (oppTypeSet.has(noaWorld.getBlockID(pos[0], pos[1], pos[2]))) {
-        return !defaultReturn
-    }
-    for (const rect of rectList) {
-        if (posWithinRect(pos, rect)) {
-            return defaultReturn
-        }
-    }
-
-    return !defaultReturn
-}
-
-/**
- * Get whether the player is allowed to Change a given block
- * @param {*} pos 
- */
-World.prototype.canChangeBlock = function (pos) {
-    // if can't Change then it must be explicitly allowed
-    if (!this.noa.serverSettings.canChange) {
-        return posSatisfiesModifyConstraints(this, pos, this.canChangeBlockCoord, this.cantChangeBlockCoord, this.canChangeBlockType, this.cantChangeBlockType, this.canChangeBlockRect, true)
-    }
-    // can Change - could be explicitly disallowed
-    else {
-        return posSatisfiesModifyConstraints(this, pos, this.cantChangeBlockCoord, this.canChangeBlockCoord, this.cantChangeBlockType, this.canChangeBlockType, this.cantChangeBlockRect, false)
-    }
-}
 
 
 
@@ -372,7 +294,7 @@ World.prototype.tick = function () {
     if (this._cachedWorldName !== this.noa.worldName) {
         this.markAllChunksForRemoval()
         this._cachedWorldName = this.noa.worldName
-        // this._chunkAddSearchDistance = 0 // Bloxd change - not needed as we added it to markAllChunksForRemoval
+        this._chunkAddSearchDistance = 0
     }
 
     // base logic around indexes of player's current chunk
@@ -420,20 +342,17 @@ World.prototype.tick = function () {
         return done
     }, tickStartTime)
 
-
-    if (doMeshing) {
-        // when time is left over, look for low-priority extra meshing
-        var dt = performance.now() - tickStartTime
-        ptime -= dt
-        if (ptime > 0.5) {
-            lookForChunksToMesh(this)
-            profile_hook('looking')
-            loopForTime(ptime, () => {
-                var done = processMeshingQueue(this, false)
-                profile_hook('meshes')
-                return done
-            }, tickStartTime)
-        }
+    // when time is left over, look for low-priority extra meshing
+    var dt = performance.now() - tickStartTime
+    ptime -= dt
+    if (ptime > 0.5) {
+        lookForChunksToMesh(this)
+        profile_hook('looking')
+        loopForTime(ptime, () => {
+            var done = processMeshingQueue(this, false)
+            profile_hook('meshes')
+            return done
+        }, tickStartTime)
     }
 
     this.meshingTick++ // bloxd change - Don't mesh things every tick
@@ -485,7 +404,7 @@ World.prototype._getChunkByCoords = function (x, y, z) {
 
 function initChunkQueues(world) {
     // queue meanings:
-    //    Known:        all chunks existing in any queue // arthur comment: I think this it also contains all loaded chunks (and I can't see a list with those) but I may be wrong
+    //    Known:        all chunks existing in any queue
     //    ToRequest:    needed but not yet requested from client
     //    Pending:      requested, awaiting creation
     //    ToMesh:       created but not yet meshed
@@ -603,20 +522,14 @@ function invalidateChunksInBox(world, box) {
 }
 
 // when current world changes - empty work queues and mark all for removal
-// bloxd change start - make it a member function
-World.prototype.markAllChunksForRemoval = function () {
-    this._chunksToRemove.copyFrom(this._chunksKnown)
-    this._chunksToRequest.empty()
-    this._chunksToMesh.empty()
-    this._chunksToMeshFirst.empty()
-    // Bloxd start
-    // Remove all chunks in remove queue, so we can request chunks in the new world that were close to us.
-    while (!processRemoveQueue(this)) { // If we change to not do this, we will need to change resetMap in bloxd worldGen
-    }
-    // the following code won't actually do anything anymore, leave it in for ease of merging.
-    // Bloxd end
-    var loc = getPlayerChunkIndexes(this)
-    sortQueueByDistanceFrom(this._chunksToRemove, loc[0], loc[1], loc[2])
+function markAllChunksForRemoval(world) {
+    world._chunksToRemove.copyFrom(world._chunksKnown)
+    world._chunksToRequest.empty()
+    world._chunksToMesh.empty()
+    world._chunksToMeshFirst.empty()
+    var loc = getPlayerChunkIndexes(world)
+    sortQueueByDistanceFrom(world._chunksToRemove, loc[0], loc[1], loc[2])
+}
 
     this._chunkAddSearchDistance = 0 // bloxd change - add this in so we get it when calling this from resetMap
 }

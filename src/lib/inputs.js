@@ -1,5 +1,6 @@
 
 import makeInputs from 'game-inputs'
+// import { Inputs as GameInputs } from '../../../../npm-modules/game-inputs'
 
 
 
@@ -9,7 +10,7 @@ var defaultOptions = {
     allowContextMenu: false,
 }
 
-const defaultBindings = {
+var defaultBindings = {
     "forward": ["W", "<up>"],
     "left": ["A", "<left>"],
     "backward": ["S", "<down>"],
@@ -19,7 +20,7 @@ const defaultBindings = {
     "alt-fire": ["<mouse 3>", "E"],
     "jump": "<space>",
     "sprint": "<shift>",
-    "crouch": ["Z", "<caps-lock>", "\\", "C"],
+    "crouch": "<control>",
 }
 
 /**
@@ -65,7 +66,7 @@ export function createInputs(noa, opts, element) {
  *     "alt-fire": ["<mouse 3>", "E"],
  *     "jump": "<space>",
  *     "sprint": "<shift>",
- *     "crouch": ["Z", "<caps-lock>", "\\", "C"],
+ *     "crouch": "<control>",
  * }
  * ```
  *

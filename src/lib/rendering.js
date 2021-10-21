@@ -68,15 +68,6 @@ var defaults = {
  * ```
 */
 
-function MeshMetadataType() {
-    this.markAsDirtyOnRebase = false
-    this.playerEId = null
-    this.gltf = null // set by gltf importer
-
-    this._noaIsDynamicContent = false
-    this._noaContainingBlock = null
-}
-
 export class Rendering {
 
     /** @internal @prop _scene */
@@ -105,10 +96,6 @@ export class Rendering {
         this._octree = null
         this._octreeManager = null
         initScene(this, canvas, opts)
-
-        // bloxd start
-        this.MeshMetadataType = MeshMetadataType
-        // bloxd end
 
         // for debugging
         if (opts.showFPS) setUpFPS()
@@ -259,9 +246,8 @@ var hlpos = []
  * @param isStatic pass in true if mesh never moves (i.e. change octree blocks)
  * @param pos (optional) global position where the mesh should be
  * @param containingChunk (optional) chunk to which the mesh is statically bound
- * @param isPickable (optional) whether the mesh is pickable
  */
-Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = null, containingChunk = null, isPickable=false) {
+Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = null, containingChunk = null) {
     // exit silently if mesh has already been added and not removed
     if (this._octreeManager.includesMesh(mesh)) return
 
@@ -279,20 +265,14 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = nul
         if (mesh.freezeNormals) mesh.freezeNormals()
     }
 
-    // bloxd start
-    mesh.isPickable = isPickable
-
-    if (!mesh.metadata) {
-        mesh.metadata = new MeshMetadataType()
-    }
-    // bloxd end
-
     // add to the octree, and add dispose handler to remove it
     this._octreeManager.addMesh(mesh, isStatic, pos, containingChunk)
     mesh.onDisposeObservable.add(() => {
         this._octreeManager.removeMesh(mesh)
     })
 }
+
+
 
 
 
@@ -316,11 +296,7 @@ Rendering.prototype.makeStandardMaterial = function (name) {
 }
 
 /** Exposed hook for if the client wants to do something to newly created materials */
-// bloxd change start - call mat.freeze()
-Rendering.prototype.postMaterialCreationHook = function (mat) { 
-    mat.freeze()
-}
-// bloxd change end
+Rendering.prototype.postMaterialCreationHook = function (mat) { }
 
 
 

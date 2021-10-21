@@ -36,26 +36,24 @@ export default function (noa) {
 
             for (var i = 0; i < states.length; i++) {
                 var state = states[i]
-                var moveState = ents.getMoveState(state.__id)
-
-                if (state.isTouchscreen) {
-                    // update rotation - running, etc update is done from react component
-                    moveState.heading = (noa.camera.heading+(Math.PI*2)-(state.joystickHeading+3*Math.PI/2))%(Math.PI*2)
-                }
-                else {
-                    // player on pc
-                    setMovementState(noa.serverSettings, moveState, inputState, state, camHeading)
-                }
+                var moveState = ents.getMovement(state.__id)
+                setMovementState(moveState, inputState, camHeading)
             }
-        },
+        }
+
     }
 }
 
 
 
+/**
+ * @param {import('../components/movement').MovementState} state 
+ * @param {Object<string, boolean>} inputs 
+ * @param {number} camHeading 
+ * @internal
+*/
 
-
-function setMovementState(serverSettings, state, inputs, keyboardMoverState, camHeading) {
+function setMovementState(state, inputs, camHeading) {
     state.jumping = !!inputs.jump
 
     // var fb = state.fb = inputs.forward ? (inputs.backward ? 0 : 1) : (inputs.backward ? -1 : 0)

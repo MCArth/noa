@@ -113,9 +113,11 @@ export class Camera {
     /** Current actual zoom distance. This differs from `zoomDistance` when
      * the camera is in the process of moving towards the desired distance, 
      * or when it's obstructed by solid terrain behind the player.
+     * @readonly
      * @prop currentZoom 
     */
 
+    /** @internal @prop _currentZoom */
     /** @internal @prop _dirVector */
 
     /** 
@@ -152,34 +154,17 @@ export class Camera {
 
 
         this.currentZoom = opts.initialZoom
+        this._currentZoom = this.currentZoom
+        Object.defineProperty(this, 'currentZoom', { get: () => this._currentZoom })
 
         this._dirVector = vec3.fromValues(0, 0, 1)
-
-        this.currentZoom = opts.initialZoom
-
-        // bloxd start
-        this.onCurrentZoomChange = null
-        this.onCurrentZoomSetFromInternals = null
-
-        this.targetX = 0
-        this.targetY = 0
-
-        this._targetKickback = 0
-        this._appliedKickback = 0
-        this._approachTargetKickbackRate = 0.009
-        this._lastUpdateBeforeEntityRender = Date.now()
-
-        this._kickbackDiffToApply = 0
-        this._kickbackDecreaseRate = 0
-
-        this.previousZoom = 0
-        // this._kickbackIncreaseRate = 0
-        // bloxd end
-
-        // internals
-        this._dirVector = vec3.fromValues(0, 1, 0)
     }
 
+    /** 
+     * @internal 
+     * @type {import('../index').Engine}
+     * @prop noa
+    */
 
 
 
@@ -191,6 +176,8 @@ export class Camera {
      * 
     */
 
+        // entity to follow, and vertical offset to eye position
+        this.cameraTarget = this.noa.ents.createEntity(['position'])
 
     /*
      *      Local position functions for high precision
@@ -204,8 +191,8 @@ export class Camera {
     /** @internal */
     _localGetPosition() {
         var loc = this._localGetTargetPosition()
-        if (this.currentZoom === 0) return loc
-        return vec3.scaleAndAdd(loc, loc, this._dirVector, -this.currentZoom)
+        if (this._currentZoom === 0) return loc
+        return vec3.scaleAndAdd(loc, loc, this._dirVector, -this._currentZoom)
     }
 
 
@@ -221,6 +208,7 @@ export class Camera {
         return this.noa.localToGlobal(loc, globalCamPos)
     }
 
+        this.currentZoom = opts.initialZoom
 
     /**
      * Returns the current camera position (read only)
@@ -231,31 +219,8 @@ export class Camera {
         return this.noa.localToGlobal(loc, globalCamPos)
     }
 
-    /**
-     * Returns the direction vector pointing up from the camera (up from top of player's head, for example)
-     */
-    getUpDirection () {
-        return findVectorToPointOnUnitSphere(
-            this.heading,
-            this.pitch + Math.PI / 2
-        );
-    }
-
-    setZoomDistance(zoomDistance) {
-        this.previousZoom = this.zoomDistance
-        this.zoomDistance = zoomDistance
-        if (this.onCurrentZoomSetFromInternals) {
-            this.onCurrentZoomSetFromInternals(this.previousZoom, zoomDistance)
-        }
-    }
-
-    addKickback(kickback) {
-        this._targetKickback += kickback
-    }
-
-    setKickbackDecreaseRate(decreaseRate) {
-        this._kickbackDecreaseRate = decreaseRate
-    }
+        this.targetX = 0
+        this.targetY = 0
 
     /**
      * Returns the camera direction vector (read only)
@@ -264,7 +229,12 @@ export class Camera {
         return this._dirVector
     }
 
+        this._kickbackDiffToApply = 0
+        this._kickbackDecreaseRate = 0
 
+        this.previousZoom = 0
+        // this._kickbackIncreaseRate = 0
+        // bloxd end
 
 
     /*
@@ -277,17 +247,18 @@ export class Camera {
      * 
     */
 
-    /*
-    *  Called before render, if mouseLock etc. is applicable.
-    *  Consumes input mouse events x/y, updates camera angle and zoom
+
+
+    /**
+     * Called before render, if mouseLock etc. is applicable.
+     * Consumes input mouse events x/y, updates camera angle and zoom
+     * @internal
     */
 
     applyInputsToCamera() {
         // dx/dy from input state
         var state = this.noa.inputs.state
-        // console.debug(state.dx, state.dy)
-        bugFix(state) // TODO: REMOVE EVENTUALLY
-        bugFix2(state)
+        bugFix(state) // TODO: REMOVE EVENTUALLY    
 
         // convert to rads, using (sens * 0.0066 deg/pixel), like Overwatch
         var conv = 0.0066 * Math.PI / 180
@@ -295,9 +266,6 @@ export class Camera {
         var dx = state.dx * this.sensitivityX * conv
         if (this.inverseY) dy = -dy
         if (this.inverseX) dx = -dx
-
-        dy -= this._kickbackDiffToApply
-        this._kickbackDiffToApply = 0
 
         // normalize/clamp angles, update direction vector
         var twopi = 2 * Math.PI
@@ -307,6 +275,7 @@ export class Camera {
         this.pitch = Math.max(-maxPitch, Math.min(maxPitch, this.pitch + dy))
 
         vec3.set(this._dirVector, 0, 0, 1)
+        console.log
         var dir = this._dirVector
         var origin = originVector
         vec3.rotateX(dir, dir, origin, this.pitch)
@@ -314,60 +283,23 @@ export class Camera {
     }
 
 
-    updateBeforeEntityRenderSystems(dt) {
+
+    /**
+     *  Called before all renders, pre- and post- entity render systems
+     * @internal
+    */
+    updateBeforeEntityRenderSystems() {
         // zoom update
-        const zoomMoveDist = (this.zoomDistance - this.currentZoom) * this.zoomSpeed
-        if (Math.abs(zoomMoveDist) < 0.0001) {
-            this.currentZoom = this.zoomDistance
-        }
-        else {
-            this.currentZoom += zoomMoveDist
-        }
-        if (zoomMoveDist !== 0 && this.onCurrentZoomChange) {
-            this.onCurrentZoomChange(this.currentZoom, this.currentZoom-zoomMoveDist)
-        }
-
-        const targetKickbackChange = this._targetKickback*this._kickbackDecreaseRate*dt
-        
-        if (targetKickbackChange < 0.0001) {
-            this._targetKickback = 0
-            this._kickbackDiffToApply = -this._appliedKickback
-            this._appliedKickback = 0
-        }
-        else {
-            this._targetKickback -= targetKickbackChange
-        }
-
-        const now = Date.now()
-        const actualKickbackChange = (this._targetKickback-this._appliedKickback)*this._approachTargetKickbackRate*(now-this._lastUpdateBeforeEntityRender)
-        if (Math.abs(actualKickbackChange) < 0.00001) {
-            this._appliedKickback = this._targetKickback
-        }
-        else {
-            this._kickbackDiffToApply += actualKickbackChange
-            this._appliedKickback += actualKickbackChange
-        }
-
-        this._lastUpdateBeforeEntityRender = now
+        this._currentZoom += (this.zoomDistance - this._currentZoom) * this.zoomSpeed
     }
 
+    /** @internal */
     updateAfterEntityRenderSystems() {
         // clamp camera zoom not to clip into solid terrain
-        var maxZZoom = Math.max(cameraObstructionZDistance(this)-0.2, 0)
-        if (this.currentZoom > maxZZoom) this.currentZoom = maxZZoom
-
-        if (this.noa.rendering._camera.position.x || this.noa.rendering._camera.position.y) {
-            var maxYZoom = Math.max(cameraObstructionYDistance(this)-0.2, 0)
-            if (this.noa.rendering._camera.position.y > maxYZoom) {
-                this.noa.rendering._camera.position.y = maxYZoom
-            }
-
-            var maxXZoom = Math.max(cameraObstructionXDistance(this)-0.2, 0)
-            if (this.noa.rendering._camera.position.x > maxXZoom) {
-                this.noa.rendering._camera.position.x = maxXZoom
-            }
-        }
+        var maxZoom = cameraObstructionDistance(this)
+        if (this._currentZoom > maxZoom) this._currentZoom = maxZoom
     }
+
 }
 
 
@@ -377,60 +309,22 @@ export class Camera {
  *  check for obstructions behind camera by sweeping back an AABB
 */
 
-function cameraObstructionZDistance(self) {
-    if (!_camBox) {
-        var off = self.noa.worldOriginOffset
-        _camBox = new aabb([0, 0, 0], vec3.clone(_camBoxVec))
-        _getVoxel = (x, y, z) => self.noa.world.getBlockSolidity(x + off[0], y + off[1], z + off[2])
-        vec3.scale(_camBoxVec, _camBoxVec, -0.5)
+function cameraObstructionDistance(self) {
+    if (!self._sweepBox) {
+        self._sweepBox = new aabb([0, 0, 0], [0.2, 0.2, 0.2])
+        self._sweepGetVoxel = self.noa.world.getBlockSolidity.bind(self.noa.world)
+        self._sweepVec = vec3.create()
+        self._sweepHit = () => true
     }
-    _camBox.setPosition(self._localGetTargetPosition())
-    _camBox.translate(_camBoxVec)
-    var dist = Math.max(self.zoomDistance, self.currentZoom) + 0.5
-    vec3.scale(_sweepVec, self.getDirection(), -dist)
-    return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)
+    var pos = vec3.copy(self._sweepVec, self._localGetTargetPosition())
+    vec3.add(pos, pos, self.noa.worldOriginOffset)
+    for (var i = 0; i < 3; i++) pos[i] -= 0.1
+    self._sweepBox.setPosition(pos)
+    var dist = Math.max(self.zoomDistance, self.currentZoom) + 0.1
+    vec3.scale(self._sweepVec, self.getDirection(), -dist)
+    return sweep(self._sweepGetVoxel, self._sweepBox, self._sweepVec, self._sweepHit, true)
 }
 
-// must be called after Z max distance and before X max distance (and Z max distance must have been applied)
-function cameraObstructionYDistance(self) {
-    _camBox.setPosition(self._localGetPosition())
-    _camBox.translate(_camBoxVec)
-    var dist = Math.max(self.targetY, self.noa.rendering._camera.position.y) + 0.5
-    var dir = self.getUpDirection()
-    vec3.scale(_sweepVec, dir, dist)
-    return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)
-}
-
-// must be called after Z and Y max distance (and Z+Y max distance must have been applied)
-function cameraObstructionXDistance(self) {
-    const position = self._localGetPosition()
-    const yDir = findVectorToPointOnUnitSphere(self.heading, self.pitch+Math.PI/2)
-    vec3.scaleAndAdd(position, position, yDir, self.noa.rendering._camera.position.y)
-    _camBox.setPosition(position)
-    _camBox.translate(_camBoxVec)
-    var dist = Math.max(self.targetX, self.noa.rendering._camera.position.x) + 0.5
-    const dir = findVectorToPointOnUnitSphere(self.heading-Math.PI/2, 0)
-    vec3.scale(_sweepVec, dir, dist)
-    return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)
-}
-
-var _camBoxVec = vec3.fromValues(0.2, 0.2, 0.2)
-var _sweepVec = vec3.create()
-var _camBox
-var _getVoxel
-var _hitFn = () => true
-
-// z is forward
-// theta is angle about horizontal (can use cam.heading)
-// phi is angle about vertical (can use cam.pitch)
-export function findVectorToPointOnUnitSphere(theta, phi) {
-    phi = Math.PI/2-phi
-    theta = -theta
-    const x = Math.sin(phi)*Math.sin(theta)
-    const y = Math.cos(phi)
-    const z = Math.sin(phi)*Math.cos(theta)
-    return [x, y, -z]
-}
 
 export function vectorToUnitSphereAngles(x, y, z) {
     if (x.length) {
@@ -455,46 +349,8 @@ export function vectorToUnitSphereAngles(x, y, z) {
 function bugFix(state) {
     var dx = state.dx
     var dy = state.dy
-    var wval = document.body.clientWidth / 6
-    var hval = document.body.clientHeight / 6
-    var badx = (Math.abs(dx) > wval && (dx / oldlastx) < -1)
-    var bady = (Math.abs(dy) > hval && (dy / oldlasty) < -1)
-    if (badx || bady) {
-        state.dx = oldlastx
-        state.dy = oldlasty
-        oldlastx = (dx > 0) ? 1 : -1
-        oldlasty = (dy > 0) ? 1 : -1
-    } else {
-        if (dx) oldlastx = dx
-        if (dy) oldlasty = dy
-    }
-}
-
-var oldlastx = 0
-var oldlasty = 0
-
-
-// my bugfix2, replacing with andy's
-// function bugFix2(state) {
-//     const newDx = state.dx
-//     if (newDx > lx && lx > 0 && newDx-lx > 150) {
-//         state.dx = lx
-//     }
-//     else if (newDx < lx && lx < 0 && newDx-lx < -150) {
-//         state.dx = lx
-//     }
-//     lx = newDx
-// }
-
-// let lx = 0
-
-
-// later updated to also address: https://github.com/andyhall/noa/issues/153
-function bugFix2(state) {
-    var dx = state.dx
-    var dy = state.dy
-    var badx = (Math.abs(dx) > 100 && Math.abs(dx / lastx) > 4)
-    var bady = (Math.abs(dy) > 100 && Math.abs(dy / lasty) > 4)
+    var badx = (Math.abs(dx) > 400 && Math.abs(dx / lastx) > 4)
+    var bady = (Math.abs(dy) > 400 && Math.abs(dy / lasty) > 4)
     if (badx || bady) {
         state.dx = lastx
         state.dy = lasty

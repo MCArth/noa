@@ -1,4 +1,5 @@
-const vec3 = require('gl-vec3')
+
+import vec3 from 'gl-vec3'
 
 
 
@@ -8,23 +9,33 @@ const vec3 = require('gl-vec3')
  * State object of the `movement` component
  * @class
 */
-export function MovementSettings() {
-    // options:
-    this.maxSpeed = 4
-    this.moveForce = 50 // Increasing this amount means your top speed is higher. Influences the magnitude of the movement if not capped by responsiveness.
-    this.responsiveness = 10 // Increasing this means you accelerate to top speed faster. Influences the magnitude the movement is capped at.
-    this.movingFriction = 0
-    this.standingFriction = 5
+export function MovementState() {
+    this.heading = 0 // radians
+    this.running = false
+    this.jumping = false
 
+    // options
+    this.maxSpeed = 10
+    this.moveForce = 30
+    this.responsiveness = 15
+    this.runningFriction = 0
+    this.standingFriction = 2
+
+    // jumps
     this.airMoveMult = 0.5
-    this.jumpForce = 0
+    this.jumpImpulse = 10
+    this.jumpForce = 12
     this.jumpTime = 500 // ms
+    this.airJumps = 1
 
     // internal state
     this._jumpCount = 0
     this._currjumptime = 0
     this._isJumping = false
 }
+
+
+
 
 
 /**
@@ -43,7 +54,7 @@ export default function (noa) {
 
         order: 30,
 
-        state: new MovementSettings(),
+        state: new MovementState(),
 
         onAdd: null,
 
@@ -52,15 +63,10 @@ export default function (noa) {
 
         system: function movementProcessor(dt, states) {
             var ents = noa.entities
-
             for (var i = 0; i < states.length; i++) {
                 var state = states[i]
                 var phys = ents.getPhysics(state.__id)
-                if (phys) {
-                    var body = ents.getPhysicsBody(state.__id)
-                    const moveState = ents.getMoveState(state.__id)
-                    applyMovementPhysics(noa, dt, state, moveState, body)
-                }
+                if (phys) applyMovementPhysics(dt, state, phys.body)
             }
         }
 
@@ -77,10 +83,11 @@ var zeroVec = vec3.create()
 /**
  * @internal
  * @param {number} dt 
- * @param {MovementSettings} state 
+ * @param {MovementState} state 
  * @param {*} body 
 */
-function applyMovementPhysics(noa, dt, state, moveState, body) {
+
+function applyMovementPhysics(dt, state, body) {
     // move implementation originally written as external module
     //   see https://github.com/andyhall/voxel-fps-controller
     //   for original code

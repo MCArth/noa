@@ -1,9 +1,10 @@
+
+import vec3 from 'gl-vec3'
+
 import { Color3 } from '@babylonjs/core/Maths/math.color'
 import { Mesh } from '@babylonjs/core/Meshes/mesh'
 import '@babylonjs/core/Meshes/Builders/discBuilder'
 import '@babylonjs/core/Meshes/instancedMesh'
-
-var vec3 = require('gl-vec3')
 
 
 export default function (noa, dist) {
@@ -57,11 +58,7 @@ export default function (noa, dist) {
                 var state = states[i]
                 var posState = noa.ents.getPositionData(state.__id)
                 var physState = noa.ents.getPhysics(state.__id)
-                let enabledCombinator
-                if (noa.entities.hasComponent(state.__id, "genericPlayerState")) {
-                    enabledCombinator = noa.entities.getState(state.__id, "genericPlayerState").shadowMeshEnabledCombinator
-                }
-                updateShadowHeight(noa, posState, physState, state._mesh, state.size, dist, cpos, enabledCombinator)
+                updateShadowHeight(noa, posState, physState, state._mesh, state.size, dist, cpos)
             }
         },
 

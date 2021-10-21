@@ -40,15 +40,12 @@ export class SceneOctreeManager {
 
         this.rebase = (offset) => { recurseRebaseBlocks(octree, offset) }
         this.includesMesh = (mesh) => {
-            if (!mesh.metadata) {
-                return false
-            }
-            return (mesh.metadata._noaContainingBlock || mesh.metadata._noaIsDynamicContent)
+            return (mesh._noaContainingBlock || mesh._noaIsDynamicContent)
         }
 
         this.addMesh = (mesh, isStatic, pos, chunk) => {
             if (!isStatic) {
-                mesh.metadata._noaIsDynamicContent = true
+                mesh._noaIsDynamicContent = true
                 octree.dynamicContent.push(mesh)
                 return
             }
@@ -74,22 +71,20 @@ export class SceneOctreeManager {
 
             // do the actual adding logic
             block.entries.push(mesh)
-            mesh.metadata._noaContainingBlock = block
+            mesh._noaContainingBlock = block
 
             // rely on octrees for selection, skipping bounds checks
             mesh.alwaysSelectAsActiveMesh = true
         }
 
         this.removeMesh = (mesh) => {
-            if (mesh.metadata._noaIsDynamicContent) {
-                mesh.metadata._noaIsDynamicContent = null
+            if (mesh._noaIsDynamicContent) {
+                mesh._noaIsDynamicContent = null
                 removeUnorderedListItem(octree.dynamicContent, mesh)
             }
-            if (mesh.metadata._noaContainingBlock) {
-                // bloxd start - comment out unneeded property
-                // mesh.metadata._noaContainingChunk = null
-                // bloxd end
-                var block = mesh.metadata._noaContainingBlock
+            if (mesh._noaContainingBlock) {
+                mesh._noaContainingChunk = null
+                var block = mesh._noaContainingBlock
                 removeUnorderedListItem(block.entries, mesh)
                 if (block.entries.length === 0) {
                     delete octBlocksHash[block._noaMapKey]

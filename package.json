@@ -24,16 +24,14 @@
     },
     "dependencies": {
         "aabb-3d": "andyhall/aabb-3d",
-        "box-intersect": "github:andyhall/box-intersect",
+        "box-intersect": "andyhall/box-intersect",
         "ent-comp": "^0.10.1",
         "events": "^3.3.0",
         "fast-voxel-raycast": "^0.1.1",
-        "game-inputs": "github:MCArth/game-inputs",
+        "game-inputs": "^0.4.0",
         "gl-vec3": "^1.1.3",
-        "micro-game-shell": "github:MCArth/micro-game-shell",
+        "micro-game-shell": "^0.2.0",
         "ndarray": "^1.0.19",
-        "node-require-context": "^1.0.0",
-        "require-context": "^1.1.0",
         "voxel-aabb-sweep": "^0.5.0",
         "voxel-physics-engine": "^0.11.0"
     },
@@ -41,7 +39,6 @@
         "@babylonjs/core": "^4.2.0"
     },
     "devDependencies": {
-        "@types/node": "^16.6.2",
         "eslint": "^7.26.0",
         "js-beautify": "^1.13.13",
         "typedoc": "^0.20.36",
