@@ -281,7 +281,6 @@ export class Camera {
         if (this._currentZoom > maxZoom) this._currentZoom = maxZoom
     }
 
-}
 
     /*
      * 

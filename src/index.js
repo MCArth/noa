@@ -456,23 +456,6 @@ export class Engine extends EventEmitter {
         }
     }
 
-            // expose often-used classes
-            this.vec3 = vec3
-            this.ndarray = ndarray
-            // gameplay tweaks
-            ents.getMovement(1).airJumps = 999
-            // decorate window while making TS happy
-            var win = /** @type {any} */ (window)
-            win.noa = this
-            win.vec3 = vec3
-            win.ndarray = ndarray
-            win.scene = this.rendering._scene
-        }
-
-        // add hooks to throw helpful errors when using deprecated methods
-        deprecateStuff(this)
-    }
-
 
     /*
      *
@@ -582,32 +565,6 @@ export class Engine extends EventEmitter {
             this.world.setBlockID(id, x, y, z)
             return id
         }
-    }
-
-        // brief run through meshing queue
-        this.world.render()
-        profile_hook_render('meshing')
-
-        // entity render systems
-        this.camera.updateBeforeEntityRenderSystems()
-        this.entities.render(dt)
-        this.camera.updateAfterEntityRenderSystems()
-        profile_hook_render('entities')
-
-        // events and render
-        this.emit('beforeRender', dt)
-        profile_hook_render('before render')
-
-        this.rendering.render()
-        this.rendering.postRender()
-        profile_hook_render('render')
-
-        this.emit('afterRender', dt)
-        profile_hook_render('after render')
-        profile_hook_render('end')
-
-        // clear accumulated mouseMove inputs (scroll inputs cleared on render)
-        this.inputs.state.dx = this.inputs.state.dy = 0
     }
 
 
@@ -802,6 +759,7 @@ export class Engine extends EventEmitter {
             this._prevTargetHash = newhash
         }
     }
+}
 
 
 
