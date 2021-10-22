@@ -3,6 +3,7 @@
 
 This is a summary of new features and breaking changes in recent `noa` versions.
 
+ * [0.31.0](#0310)
  * [0.30.0](#0300)
  * [0.29.0](#0290)
  * [0.28.0](#0280)
@@ -18,6 +19,14 @@ This is a summary of new features and breaking changes in recent `noa` versions.
 
 
 ----
+
+### 0.31.0
+
+   * Change the speed of the world with `noa.timeScale`
+   * Now possible to control chunk processing order: `noa.world.chunkSortingDistFn`
+   * Chunk processing will happen more reliably, particularly after switching worlds.
+   * Changed how the docs work, and how code comments are arranged for this purpose. See [API docs](https://fenomas.github.io/noa/API/).
+
 
 ### 0.30.0
 
@@ -81,10 +90,10 @@ This is a summary of new features and breaking changes in recent `noa` versions.
 
    * Engine now imports Babylon as a **peer dependency** 
      * Noa games must now declare their own dependency on `@babylon/core`
-     * See [examples](https://github.com/andyhall/noa-examples) for sample code, weback config, etc.
+     * See [examples](https://github.com/fenomas/noa-examples) for sample code, weback config, etc.
    * Noa now exports Engine as an ES6 module. 
      * Clients using `require` will need to do `require('noa-engine').default`
-   * Example worlds (`test` and `hello-world`) moved to a [separate repo](https://github.com/andyhall/noa-examples)
+   * Example worlds (`test` and `hello-world`) moved to a [separate repo](https://github.com/fenomas/noa-examples)
    * Internal modules all migrated to es6 import/export syntax
    * Moves several camera-related APIs from rendering to `noa.camera`
    * Removes several redundant properties/APIs (they throw depreceation messages when accessed)
