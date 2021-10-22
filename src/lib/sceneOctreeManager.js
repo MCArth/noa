@@ -1,4 +1,7 @@
-/** @internal */ /** works around typedoc bug #842 */
+/** 
+ * @module 
+ * @internal exclude this file from API docs 
+*/
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { Octree } from '@babylonjs/core/Culling/Octrees/octree'
@@ -20,7 +23,6 @@ import { locationHasher, removeUnorderedListItem } from './util'
 
 export class SceneOctreeManager {
 
-    /** @internal */
     constructor(rendering, blockSize) {
         var scene = rendering._scene
         scene._addComponent(new OctreeSceneComponent(scene))
@@ -105,7 +107,7 @@ export class SceneOctreeManager {
         */
 
         var NOP = () => { }
-        var bs = blockSize * rendering.noa.world.chunkSize
+        var bs = blockSize * rendering.noa.world._chunkSize
 
         var recurseRebaseBlocks = (parent, offset) => {
             parent.blocks.forEach(child => {

@@ -1,4 +1,38 @@
-const vec3 = require('gl-vec3')
+/** 
+ * @module
+ * @internal
+ */
+
+import vec3 from 'gl-vec3'
+
+// Declare Physics types here until physics module gets typified someday
+/**
+ * @typedef {Object} RigidBody
+ * @prop {import('aabb-3d')} aabb
+ * @prop {number} mass
+ * @prop {number} friction
+ * @prop {number} restitution
+ * @prop {number} gravityMultiplier
+ * @prop {number} airDrag
+ * @prop {number} fluidDrag
+ * @prop {boolean} autoStep
+ * @prop {null | function} onCollide
+ * @prop {null | function} onStep
+ */
+
+
+export class PhysicsState {
+    constructor() {
+        /** @type {null | RigidBody} */
+        this.body = null
+    }
+}
+
+
+/**
+ * Physics component, stores an entity's physics engbody.
+ * @param {import('..').Engine} noa
+*/
 
 
 exports.default = function (noa) {
@@ -8,10 +42,7 @@ exports.default = function (noa) {
 
         order: 40,
 
-        state: {
-            body: null,
-        },
-
+        state: new PhysicsState,
 
         onAdd: function (entID, state) {
             state.body = noa.physics.addBody()
@@ -47,6 +78,7 @@ exports.default = function (noa) {
 
             var tickPos = noa.positionInCurrentTick
             var tickTime = 1000 / noa.container._shell.tickRate
+            tickTime *= noa.timeScale
             var tickMS = tickPos * tickTime
 
             // tickMS is time since last physics engine tick
