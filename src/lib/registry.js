@@ -184,33 +184,6 @@ export class Registry {
         }
 
 
-        /**
-         * Register (by name) a material and its parameters.
-         * 
-         * @param name
-         * @param color
-         * @param textureURL
-         * @param texHasAlpha
-         * @param renderMaterial an optional BABYLON material to be used for block faces with this block material
-         */
-
-        this.registerMaterial = function (name, color = [1, 1, 1], textureURL = '', texHasAlpha = false, renderMaterial = null) {
-            // console.log('register mat: ', name, color, textureURL)
-            var id = matIDs[name] || matData.length
-            matIDs[name] = id
-            var alpha = 1
-            if (color && color.length == 4) {
-                alpha = color.pop()
-            }
-            matData[id] = {
-                color: color || [1, 1, 1],
-                alpha: alpha,
-                texture: textureURL ? this._texturePath + textureURL : '',
-                textureAlpha: !!texHasAlpha,
-                renderMat: renderMaterial || null,
-            }
-            return id
-        }
 
 
         /**
@@ -284,11 +257,6 @@ export class Registry {
             return blockMats[blockId * 6 + dir]
         }
 
-        // look up a block ID's face material
-        // dir is a value 0..5: [ +x, -x, +y, -y, +z, -z ]
-        this.getBlockFaceMaterial = function (blockId, dir) {
-            return blockMats[blockId * 6 + dir]
-        }
 
 
 
@@ -308,10 +276,6 @@ export class Registry {
             return matData[matID]
         }
 
-        // look up material's properties: color, alpha, texture, textureAlpha
-        this.getMaterialData = function (matID) {
-            return matData[matID]
-        }
 
 
 
@@ -331,13 +295,6 @@ export class Registry {
         this._blockMeshLookup = blockMeshes
         this._blockHandlerLookup = blockHandlers
 
-        // internal access to lookup arrays
-        this._solidityLookup = blockSolidity
-        this._opacityLookup = blockOpacity
-        this._fluidityLookup = blockIsFluid
-        this._objectLookup = blockIsObject
-        this._blockMeshLookup = blockMeshes
-        this._blockHandlerLookup = blockHandlers
 
 
 
@@ -351,13 +308,6 @@ export class Registry {
         }
         var white = [1, 1, 1]
 
-        // look up color used for vertices of blocks of given material
-        // - i.e. white if it has a texture, color otherwise
-        this._getMaterialVertexColor = function (matID) {
-            if (matData[matID].texture) return white
-            return matData[matID].color
-        }
-        var white = [1, 1, 1]
 
 
 
@@ -373,10 +323,6 @@ export class Registry {
         this.registerMaterial('dirt', [0.4, 0.3, 0], null)
         this.registerBlock(1, { material: 'dirt' })
 
-        // add a default material and set ID=1 to it
-        // note that registering new block data overwrites the old
-        this.registerMaterial('dirt', [0.4, 0.3, 0], null)
-        this.registerBlock(1, { material: 'dirt' })
 
 
     }

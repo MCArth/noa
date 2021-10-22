@@ -365,11 +365,6 @@ export class Engine extends EventEmitter {
         this._terrainMesher = new TerrainMesher(this)
         this._objectMesher = new ObjectMesher(this)
 
-        this._pickResult = {
-            _localPosition: vec3.create(),
-            position: [0, 0, 0],
-            normal: [0, 0, 0],
-        }
 
         // several reusable structs for returning data about picks
         this._targetedBlockDat = {

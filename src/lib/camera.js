@@ -180,15 +180,6 @@ export class Camera {
         this._dirVector = vec3.fromValues(0, 1, 0)
     }
 
-    /*
-     * 
-     * 
-     * 
-     *          internals below
-     * 
-     * 
-     * 
-    */
 
 
 
