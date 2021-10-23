@@ -713,13 +713,13 @@ World.prototype.markAllChunksForRemoval = function () {
     this._chunksToMeshFirst.empty()
     // Bloxd start
     // Remove all chunks in remove queue, so we can request chunks in the new world that were close to us.
-    // while (!processRemoveQueue(this)) { // If we change to not do this, we will need to change resetMap in bloxd worldGen
-    // }
+    while (!processRemoveQueue(this)) { // If we change to not do this, we will need to change resetMap in bloxd worldGen
+    }
     // the following code won't actually do anything anymore, leave it in for ease of merging.
     // Bloxd end
     var [i, j, k] = getPlayerChunkIndexes(this)
     sortQueueByDistanceFrom(this._chunksToRemove, i, j, k, this.chunkSortingDistFn)
-    this._chunkAddSearchDistance = 0 // bloxd change - add this in so we get it when calling this from resetMap
+    this._chunkAddSearchFrom = 0 // bloxd change - add this in so we get it when calling this from resetMap
 }
 // bloxd change end
 
