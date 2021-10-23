@@ -1,6 +1,12 @@
-import vec3 from 'gl-vec3'
+/** 
+ * The ECS manager, found at [[Entities | `noa.entities`]] or [[Entities | `noa.ents`]].
+ * @module noa.entities
+ */
+
+
 import ECS from 'ent-comp'
 
+import vec3 from 'gl-vec3'
 import { updatePositionExtents } from '../components/position'
 
 const setPhysicsFromPosition = require('../components/physics').setPhysicsFromPosition
@@ -35,7 +41,7 @@ const components = {
 /**
  * `noa.entities` - manages entities and components.
  * 
- * This class extends [ent-comp](https://github.com/andyhall/ent-comp), 
+ * This class extends [ent-comp](https://github.com/fenomas/ent-comp), 
  * a general-purpose ECS. It's also decorated with noa-specific helpers and 
  * accessor functions for querying entity positions, etc.
  * 
@@ -54,92 +60,12 @@ const components = {
 
 export class Entities extends ECS {
 
-    /** @internal @prop noa */
-    /** @internal @prop cameraSmoothed */
-
-    // declare some accessors that will get made later
-
-    /**
-     * Returns whether the entity has a physics body
-     * @type {(id:number) => boolean}
-     * @prop hasPhysics
-    */
-
-    /**
-     * Returns whether the entity has a mesh
-     * @type {(id:number) => boolean}
-     * @prop hasMesh
-    */
-
-    /**
-     * Returns whether the entity has a position
-     * @type {(id:number) => boolean}
-     * @prop hasPosition
-    */
-
-    /**
-     * Returns the entity's position component state
-     * @type {(id:number) => {
-     *      position: number[], width: number, height: number,
-     *      _localPosition: any, _renderPosition: any, _extents: any,
-     * }}
-     * @prop getPositionData
-    */
-
-    /**
-     * Returns the entity's position vector.
-     * Note, will throw if the entity doesn't have the position component!
-     * @type {(id:number) => number[]}
-     * @prop getPosition
-    */
-
-    /**
-     * Returns the entity's `physics` component state.
-     * @type {(id:number) => { body:any }}
-     * @prop getPhysics
-    */
-
-    /**
-     * Returns the entity's physics body
-     * Note, will throw if the entity doesn't have the position component!
-     * @type {(id:number) => { any }}
-     * @prop getPhysicsBody
-    */
-
-    /**
-     * Returns the entity's `mesh` component state
-     * @type {(id:number) => {mesh:any, offset:number[]}}
-     * @prop getMeshData
-    */
-
-    /**
-     * Returns the entity's `movement` component state
-     * @type {(id:number) => import('../components/movement').MovementSettings}
-     * @prop getMovement
-    */
-
-    /**
-     * Returns the entity's `collideTerrain` component state
-     * @type {(id:number) => {callback: function}}
-     * @prop etCollideTerrain
-    */
-
-    /**
-     * Returns the entity's `collideEntities` component state
-     * @type {(id:number) => {
-     *      cylinder:boolean, collideBits:number, 
-     *      collideMask:number, callback: function}}
-     * @prop getCollideEntities
-    */
-
-    /** 
-     * A hash of the names of all registered components.
-     * @type {Object<string, string>}
-     * @prop names
-    */
-
     constructor(noa, opts) {
         super()
+        /** 
+         * @internal
+         * @type {import('../index').Engine}
+        */
         this.noa = noa
         this.opts = Object.assign({}, defaultOptions, opts)
     
@@ -218,29 +144,102 @@ export class Entities extends ECS {
         this.isPlayer = function (id) { return id === noa.playerEntity }
 
 
-        // create some ECS state accessors
-        // (these are moderately faster than the general case APIs)
+        /** Hash containing the component names of built-in components.
+         * @type {Object.<string, string>}
+        */
+        this.names = {}
 
-        // general
-        this.hasPhysics = this.getComponentAccessor(this.names.physics)
+
+        /*
+         *
+         *
+         * 
+         *          ENTITY ACCESSORS
+         *
+         * A whole bunch of getters and such for accessing component state.
+         * These are moderately faster than `ents.getState(whatever)`.
+         * 
+         * 
+         * 
+        */
+
+        /** @internal */
         this.cameraSmoothed = this.getComponentAccessor(this.names.smoothCamera)
+
+
+        /**
+         * Returns whether the entity has a physics body
+         * @type {(id:number) => boolean}
+        */
+        this.hasPhysics = this.getComponentAccessor(this.names.physics)
+
+        /**
+         * Returns whether the entity has a position
+         * @type {(id:number) => boolean}
+        */
         this.hasPosition = this.getComponentAccessor(this.names.position)
+
+        /**
+         * Returns the entity's position component state
+         * @type {(id:number) => null | import("../components/position").PositionState} 
+        */
+        this.getPositionData = this.getStateAccessor(this.names.position)
+
+        /**
+         * Returns the entity's position vector.
+         * @type {(id:number) => number[]}
+        */
+        this.getPosition = (id) => {
+            var state = this.getPositionData(id)
+            return (state) ? state.position : null
+        }
+
+        /**
+         * Get the entity's `physics` component state.
+         * @type {(id:number) => null | import("../components/physics").PhysicsState} 
+        */
+        this.getPhysics = this.getStateAccessor(this.names.physics)
+
+        /**
+         * Returns the entity's physics body
+         * Note, will throw if the entity doesn't have the position component!
+         * @type {(id:number) => null | import("../components/physics").RigidBody} 
+        */
+        this.getPhysicsBody = (id) => {
+            var state = this.getPhysics(id)
+            return (state) ? state.body : null
+        }
+
+        /**
+         * Returns whether the entity has a mesh
+         * @type {(id:number) => boolean}
+        */
         this.hasMesh = this.getComponentAccessor(this.names.mesh)
 
-        // position
-        var getPos = this.getStateAccessor(this.names.position)
-        this.getPositionData = getPos
-        this.getPosition = (id) => getPos(id).position
-
-        // physics
-        var getPhys = this.getStateAccessor(this.names.physics)
-        this.getPhysics = getPhys
-        this.getPhysicsBody = (id) => getPhys(id).body
-
-        // misc
+        /**
+         * Returns the entity's `mesh` component state
+         * @type {(id:number) => {mesh:any, offset:number[]}}
+        */
         this.getMeshData = this.getStateAccessor(this.names.mesh)
+
+        /**
+         * Returns the entity's `movement` component state
+         * @type {(id:number) => import('../components/movement').MovementState}
+        */
         this.getMovement = this.getStateAccessor(this.names.movement)
+
+        /**
+         * Returns the entity's `collideTerrain` component state
+         * @type {(id:number) => {callback: function}}
+        */
         this.getCollideTerrain = this.getStateAccessor(this.names.collideTerrain)
+
+        /**
+         * Returns the entity's `collideEntities` component state
+         * @type {(id:number) => {
+         *      cylinder:boolean, collideBits:number, 
+         *      collideMask:number, callback: function}}
+        */
         this.getCollideEntities = this.getStateAccessor(this.names.collideEntities)
         this.getMoveState = this.getStateAccessor(this.names.moveState)
 
@@ -258,9 +257,13 @@ export class Entities extends ECS {
         this.hasInventory = null
         // bloxd
 
-        // pairwise collideEntities event - this is for client to override
-        // @ts-ignore
-        this.onPairwiseEntityCollision = function (id1, id2) {}
+
+        /**
+         * Pairwise collideEntities event - assign your own function to this 
+         * property if you want to handle entity-entity overlap events.
+         * @type {(id1:number, id2:number) => void}
+         */
+        this.onPairwiseEntityCollision = function (id1, id2) { }
     }
 
 
@@ -436,8 +439,8 @@ export class Entities extends ECS {
     /** 
      * Helper to set up a general entity, and populate with some common components depending on arguments.
     */
-    add(position, width, height, // required
-        mesh, meshOffset, doPhysics, shadow, customEId) {
+    add(position = null, width = 1, height = 1,
+        mesh = null, meshOffset = null, doPhysics = false, shadow = false, customEId = undefined) {
 
         var self = this
 
@@ -446,9 +449,9 @@ export class Entities extends ECS {
 
         // position component
         this.addComponent(eid, this.names.position, {
-            position: position || [0, 0, 0],
+            position: position || vec3.create(),
             width: width,
-            height: height
+            height: height,
         })
 
         // rigid body in physics simulator

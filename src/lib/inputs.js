@@ -1,3 +1,8 @@
+/** 
+ * The Inputs class is found at [[Inputs | `noa.inputs`]].
+ * @module noa.inputs
+ */
+
 
 import makeInputs from 'game-inputs'
 
@@ -47,13 +52,13 @@ export function createInputs(noa, opts, element) {
 /**
  * `noa.inputs` - manages keybinds and mouse input.
  *
- * Extends [andyhall/game-inputs](https://github.com/andyhall/game-inputs),
+ * Extends [game-inputs](https://github.com/fenomas/game-inputs),
  * see there for implementation and docs.
- * 
- * By default, the following bindings will be made automatically. 
- * You can undo bindings with `unbind`, or specify your own with a 
+ *
+ * By default, the following bindings will be made automatically.
+ * You can undo bindings with `unbind`, or specify your own with a
  * `bindings` property on the options object passed to the [[Engine]].
- * 
+ *
  * ```js
  * var defaultBindings = {
  *     "forward": ["W", "<up>"],

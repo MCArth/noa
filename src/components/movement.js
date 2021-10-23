@@ -1,12 +1,18 @@
-const vec3 = require('gl-vec3')
+/** 
+ * @module
+ * @internal
+ */
+
+import vec3 from 'gl-vec3'
 
 
 
 
 
 /** 
+ * 
  * State object of the `movement` component
- * @class
+ * 
 */
 export function MovementSettings() {
     // options:
@@ -33,7 +39,6 @@ export function MovementSettings() {
  * Processor checks state and applies movement/friction/jump forces
  * to the entity's physics body. 
  * @param {import('..').Engine} noa
- * @internal
 */
 
 export default function (noa) {
@@ -75,14 +80,13 @@ var zeroVec = vec3.create()
 
 
 /**
- * @internal
  * @param {number} dt 
  * @param {MovementSettings} state 
  * @param {*} body 
 */
 function applyMovementPhysics(noa, dt, state, moveState, body) {
     // move implementation originally written as external module
-    //   see https://github.com/andyhall/voxel-fps-controller
+    //   see https://github.com/fenomas/voxel-fps-controller
     //   for original code
 
     if (!noa.entities.getState(state.__id, 'genericPlayerState').isAlive) {

@@ -53,6 +53,11 @@ export default function (noa) {
 
 
 
+/**
+ * @param {import('../components/movement').MovementState} state 
+ * @param {Object<string, boolean>} inputs 
+ * @param {number} camHeading 
+*/
 
 
 function setMovementState(serverSettings, state, inputs, keyboardMoverState, camHeading) {

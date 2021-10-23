@@ -1,4 +1,7 @@
-
+/** 
+ * The Registry class is found at [[Registry | `noa.registry`]].
+ * @module noa.registry
+ */
 
 /*
  *  data structs in the registry:
@@ -72,15 +75,14 @@ var matData = [null] // mat id -> { color, alpha, texture, textureAlpha }
 
 export class Registry {
 
-    /** @internal @prop noa */
-    /** @internal @prop _texturePath */
-
 
     /** @internal */
     constructor(noa, opts) {
-        this.noa = noa
         opts = Object.assign({}, defaults, opts)
+        /** @internal */
+        this.noa = noa
 
+        /** @internal */
         this._texturePath = opts.texturePath
 
 
@@ -288,11 +290,17 @@ export class Registry {
 
 
         // internal access to lookup arrays
+        /** @internal */
         this._solidityLookup = blockSolidity
+        /** @internal */
         this._opacityLookup = blockOpacity
+        /** @internal */
         this._fluidityLookup = blockIsFluid
+        /** @internal */
         this._objectLookup = blockIsObject
+        /** @internal */
         this._blockMeshLookup = blockMeshes
+        /** @internal */
         this._blockHandlerLookup = blockHandlers
 
 
@@ -302,7 +310,8 @@ export class Registry {
 
         // look up color used for vertices of blocks of given material
         // - i.e. white if it has a texture, color otherwise
-        this._getMaterialVertexColor = function (matID) {
+        /** @internal */
+        this._getMaterialVertexColor = (matID) => {
             if (matData[matID].texture) return white
             return matData[matID].color
         }

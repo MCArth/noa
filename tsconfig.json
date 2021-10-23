@@ -4,6 +4,9 @@
         "src/index.js",
         "src/components/*.js",
     ],
+    "exclude": [
+        "node_modules",
+    ],
     "compilerOptions": {
         // output
         "outDir": "./dist",
@@ -39,36 +42,23 @@
             "src/index.js",
             "src/lib/",
             "src/components/movement.js",
+            "src/components/physics.js",
+            "src/components/position.js",
         ],
+        "entryPointStrategy": "expand",
         "excludeInternal": true,
         "name": "noa API reference",
+        "includeVersion": true,
         "out": "docs/API",
+        "disableSources": true,
         "readme": "docs/api-header.md",
-        // theme settings
-        "theme": "./node_modules/typedoc-neo-theme/bin/default",
-        "plugin": "typedoc-neo-theme",
-        "links": [
-            {
-                "label": "source",
-                "url": "https://github.com/andyhall/noa/"
-            },
-        ],
-        "outline": [
-            {
-                "core": {
-                    "Engine": "classes/index.engine",
-                },
-                "Libraries": {
-                    "noa.camera": "classes/lib_camera.camera",
-                    "noa.container": "classes/lib_container.container",
-                    "noa.entities": "classes/lib_entities.entities",
-                    "noa.inputs": "interfaces/lib_inputs.inputs",
-                    "noa.physics": "classes/lib_physics.physics",
-                    "noa.registry": "classes/lib_registry.registry",
-                    "noa.rendering": "classes/lib_rendering.rendering",
-                    "noa.world": "classes/lib_world.world",
-                },
-            }
+        "intentionallyNotExported": [
+            "ECS",
+            "EventEmitter",
+            "MovementState",
+            "PhysicsState",
+            "PositionState",
+            "RigidBody",
         ]
     },
 }
