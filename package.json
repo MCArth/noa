@@ -25,7 +25,7 @@
     "dependencies": {
         "aabb-3d": "andyhall/aabb-3d",
         "box-intersect": "github:andyhall/box-intersect",
-        "ent-comp": "^0.10.1",
+        "ent-comp": "github:MCArth/ent-comp",
         "events": "^3.3.0",
         "fast-voxel-raycast": "^0.1.1",
         "game-inputs": "github:MCArth/game-inputs",
