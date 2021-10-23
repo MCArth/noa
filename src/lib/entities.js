@@ -7,7 +7,7 @@
 import ECS from 'ent-comp'
 
 import vec3 from 'gl-vec3'
-import { updatePositionExtents } from '../components/position'
+const { updatePositionExtents } = require( '../components/position')
 
 const setPhysicsFromPosition = require('../components/physics').setPhysicsFromPosition
 
@@ -68,9 +68,10 @@ export class Entities extends ECS {
         */
         this.noa = noa
         this.opts = Object.assign({}, defaultOptions, opts)
-    
-        // properties
-        /** Hash containing the component names of built-in components. */
+
+        /** Hash containing the component names of built-in components.
+         * @type {Object.<string, string>}
+        */
         this.names = {}
 
         if (process.env.REACT_APP_IS_CLIENT === 'true') {
@@ -144,10 +145,6 @@ export class Entities extends ECS {
         this.isPlayer = function (id) { return id === noa.playerEntity }
 
 
-        /** Hash containing the component names of built-in components.
-         * @type {Object.<string, string>}
-        */
-        this.names = {}
 
 
         /*

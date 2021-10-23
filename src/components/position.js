@@ -43,7 +43,7 @@ export class PositionState {
  * @param {import('..').Engine} noa
 */
 
-exports.default = function (noa) {
+export default function (noa) {
 
     return {
 
@@ -51,7 +51,7 @@ exports.default = function (noa) {
 
         order: 41,
 
-        state: new PositionState,
+        state: new PositionState(),
 
         onAdd: function (eid, state) {
             // copy position into a plain array
@@ -89,7 +89,7 @@ exports.default = function (noa) {
 
 
 // update an entity's position state `_extents` 
-function updatePositionExtents(state) {
+export function updatePositionExtents(state) {
     var hw = state.width / 2
     var lpos = state._localPosition
     var ext = state._extents
@@ -100,5 +100,3 @@ function updatePositionExtents(state) {
     ext[4] = lpos[1] + state.height
     ext[5] = lpos[2] + hw
 }
-
-exports.updatePositionExtents = updatePositionExtents

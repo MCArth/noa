@@ -35,7 +35,7 @@ export class PhysicsState {
 */
 
 
-exports.default = function (noa) {
+export default function (noa) {
     return {
 
         name: 'physics',
@@ -107,7 +107,7 @@ exports.default = function (noa) {
 // var offset = vec3.create()
 var local = vec3.create()
 
-function setPhysicsFromPosition(physState, posState) {
+export function setPhysicsFromPosition(physState, posState) {
     var box = physState.body.aabb
     var ext = posState._extents
     vec3.copy(box.base, ext)
@@ -115,7 +115,6 @@ function setPhysicsFromPosition(physState, posState) {
     vec3.add(box.max, box.base, box.vec)
 }
 
-exports.setPhysicsFromPosition = setPhysicsFromPosition
 
 
 function setPositionFromPhysics(physState, posState) {
