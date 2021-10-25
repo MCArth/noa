@@ -268,6 +268,10 @@ World.prototype.setBlockID = function (val, x, y, z) {
     return chunk.set(i, j, k, val, x, y, z)
 }
 
+World.prototype.hasChunkWithBlockCoordinates = function (x, y, z) {
+    var [ci, cj, ck] = this._coordsToChunkIndexes(x, y, z)
+    return !!this._storage.getChunkByIndexes(ci, cj, ck)
+}
 
 /** @param box */
 World.prototype.isBoxUnobstructed = function (box) {
