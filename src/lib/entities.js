@@ -5,6 +5,7 @@
 
 
 import ECS from 'ent-comp'
+// import ECS from '../../../ent-comp'
 
 import vec3 from 'gl-vec3'
 const { updatePositionExtents } = require( '../components/position')
