@@ -262,7 +262,7 @@ export class Camera {
         // dx/dy from input state
         var state = this.noa.inputs.state
         // console.debug(state.dx, state.dy)
-        bugFix(state) // TODO: REMOVE EVENTUALLY
+        // bugFix(state) // TODO: REMOVE EVENTUALLY
         bugFix2(state)
 
         // convert to rads, using (sens * 0.0066 deg/pixel), like Overwatch
@@ -428,26 +428,26 @@ export function vectorToUnitSphereAngles(x, y, z) {
 // workaround for this Chrome 63 + Win10 bug
 // https://bugs.chromium.org/p/chromium/issues/detail?id=781182
 // later updated to also address: https://github.com/fenomas/noa/issues/153
-function bugFix(state) {
-    var dx = state.dx
-    var dy = state.dy
-    var wval = document.body.clientWidth / 6
-    var hval = document.body.clientHeight / 6
-    var badx = (Math.abs(dx) > wval && (dx / oldlastx) < -1)
-    var bady = (Math.abs(dy) > hval && (dy / oldlasty) < -1)
-    if (badx || bady) {
-        state.dx = oldlastx
-        state.dy = oldlasty
-        oldlastx = (dx > 0) ? 1 : -1
-        oldlasty = (dy > 0) ? 1 : -1
-    } else {
-        if (dx) oldlastx = dx
-        if (dy) oldlasty = dy
-    }
-}
+// function bugFix(state) {
+//     var dx = state.dx
+//     var dy = state.dy
+//     var wval = document.body.clientWidth / 6
+//     var hval = document.body.clientHeight / 6
+//     var badx = (Math.abs(dx) > wval && (dx / oldlastx) < -1)
+//     var bady = (Math.abs(dy) > hval && (dy / oldlasty) < -1)
+//     if (badx || bady) {
+//         state.dx = oldlastx
+//         state.dy = oldlasty
+//         oldlastx = (dx > 0) ? 1 : -1
+//         oldlasty = (dy > 0) ? 1 : -1
+//     } else {
+//         if (dx) oldlastx = dx
+//         if (dy) oldlasty = dy
+//     }
+// }
 
-var oldlastx = 0
-var oldlasty = 0
+// var oldlastx = 0
+// var oldlasty = 0
 
 
 // my bugfix2, replacing with andy's
