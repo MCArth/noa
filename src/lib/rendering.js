@@ -10,6 +10,10 @@ import { SceneOctreeManager } from './sceneOctreeManager'
 
 import { Scene } from '@babylonjs/core/scene'
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera'
+import '@babylonjs/core/Materials/Textures/rawTexture' // Needed as side effect for bloxd glb code (I think)
+import '@babylonjs/core/Engines/Extensions/engine.renderTarget' // Not sure why a side effect from here is needed
+import "@babylonjs/core/Materials/Textures/dynamicTexture" // Side effect needed for bloxd playerNames
+import "@babylonjs/core/Meshes/instancedMesh" // Needed for instances
 import { Engine } from '@babylonjs/core/Engines/engine'
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
