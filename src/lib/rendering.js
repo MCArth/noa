@@ -14,6 +14,8 @@ import '@babylonjs/core/Materials/Textures/rawTexture' // Needed as side effect 
 import '@babylonjs/core/Engines/Extensions/engine.renderTarget' // Not sure why a side effect from here is needed
 import "@babylonjs/core/Materials/Textures/dynamicTexture" // Side effect needed for bloxd playerNames
 import "@babylonjs/core/Meshes/instancedMesh" // Needed for instances
+import '@babylonjs/core/Rendering/outlineRenderer' // required for overlaying meshes
+import "@babylonjs/core/Materials/PBR/pbrBaseMaterial" // Needed for pbr material shaders
 import { Engine } from '@babylonjs/core/Engines/engine'
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
