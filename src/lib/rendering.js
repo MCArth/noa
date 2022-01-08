@@ -16,6 +16,7 @@ import "@babylonjs/core/Materials/Textures/dynamicTexture" // Side effect needed
 import "@babylonjs/core/Meshes/instancedMesh" // Needed for instances
 import '@babylonjs/core/Rendering/outlineRenderer' // required for overlaying meshes
 import "@babylonjs/core/Materials/PBR/pbrBaseMaterial" // Needed for pbr material shaders
+import "@babylonjs/core/Materials/Textures/cubeTexture" // needed for skybox
 import { Engine } from '@babylonjs/core/Engines/engine'
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
