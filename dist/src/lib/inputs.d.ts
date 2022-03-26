@@ -24,7 +24,7 @@ export function createInputs(noa: any, opts: any, element: any): Inputs;
  *     "alt-fire": ["<mouse 3>", "E"],
  *     "jump": "<space>",
  *     "sprint": "<shift>",
- *     "crouch": "<control>",
+ *     "crouch": ["Z", "<caps-lock>", "\\", "C"],
  * }
  * ```
  */

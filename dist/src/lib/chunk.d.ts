@@ -1,11 +1,13 @@
+export function createVoxelArray(size: any): any;
 export default Chunk;
-declare function Chunk(noa: any, requestID: any, ci: any, cj: any, ck: any, size: any, dataArray: any): void;
+declare function Chunk(noa: any, requestID: any, ci: any, cj: any, ck: any, size: any, dataArray: any, userData: any): void;
 declare class Chunk {
-    constructor(noa: any, requestID: any, ci: any, cj: any, ck: any, size: any, dataArray: any);
+    constructor(noa: any, requestID: any, ci: any, cj: any, ck: any, size: any, dataArray: any, userData: any);
     noa: any;
     isDisposed: boolean;
     requestID: any;
     voxels: any;
+    userData: any;
     i: any;
     j: any;
     k: any;
@@ -29,8 +31,5 @@ declare class Chunk {
     set(i: any, j: any, k: any, newID: any): void;
     updateMeshes(): void;
     dispose(): void;
-}
-declare namespace Chunk {
-    function _createVoxelArray(size: any): any;
 }
 import { LocationQueue } from "./util";

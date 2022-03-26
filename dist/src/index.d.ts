@@ -88,7 +88,7 @@ export class Engine extends EventEmitter {
     /** Alias to `noa.entities` */
     ents: Entities;
     /** Entity id for the player entity */
-    playerEntity: number;
+    playerEntity: any;
     /** Manages the game's camera, view angle, sensitivity, etc. */
     camera: Camera;
     /** How far to check for a solid voxel the player is currently looking at */
@@ -115,6 +115,23 @@ export class Engine extends EventEmitter {
         adjacent: number[];
     };
     defaultBlockHighlightFunction: (tgt: any) => void;
+    colyClient: any;
+    GA: any;
+    gaENums: any;
+    logErrorMessage: (str: any, err: any) => never;
+    serverSettings: {};
+    otherPlayerSettings: {};
+    playerNames: {};
+    colyRoom: any;
+    serverPlayerEntity: any;
+    actionOrigin: any;
+    actionDirection: any;
+    sounds: {
+        pvpSounds: any;
+        pvpSoundsTrackName: any;
+    };
+    room: any;
+    pluginApi: any;
     /** @internal */
     _terrainMesher: TerrainMesher;
     /** @internal */
@@ -232,8 +249,15 @@ export class Engine extends EventEmitter {
         normal: number[];
         _localPosition: number[];
     };
+    pickBlock(pos: any, vec: any, dist: any, blockIdTestFunction: any): {
+        blockID: number;
+        position: any[];
+        normal: any[];
+        adjacent: any[];
+    };
+    updateBlockTargets(forceHighlightUpdate?: boolean): void;
 }
-import { EventEmitter } from "events";
+import { EventEmitter } from "../types/events";
 import { Container } from "./lib/container";
 import { Registry } from "./lib/registry";
 import { World } from "./lib/world";

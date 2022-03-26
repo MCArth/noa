@@ -18,19 +18,39 @@
  * ```
 */
 export class Entities extends ECS {
-    /** @internal */
     constructor(noa: any, opts: any);
     /**
      * @internal
      * @type {import('../index').Engine}
     */
     noa: import('../index').Engine;
+    opts: any;
     /** Hash containing the component names of built-in components.
      * @type {Object.<string, string>}
     */
     names: {
         [x: string]: string;
     };
+    /**
+     *
+     * Create components needed client-side. Call assignFieldsAndHelpers() directly after.
+     *
+     */
+    createComponentsClient(): void;
+    /**
+     *
+     * Create components needed server-side. Call assignFieldsAndHelpers() directly after.
+     *
+     */
+    createComponentsServer(): void;
+    /**
+     *
+     * Call directly after either calling either createComponentsClient or createComponentsServer
+     *
+     */
+    assignFieldsAndHelpers(): void;
+    /** @param id */
+    isPlayer: (id: any) => boolean;
     /** @internal */
     cameraSmoothed: (id: any) => boolean;
     /**
@@ -81,7 +101,7 @@ export class Entities extends ECS {
      * Returns the entity's `movement` component state
      * @type {(id:number) => import('../components/movement').MovementState}
     */
-    getMovement: (id: number) => import('../components/movement').MovementState;
+    getMovement: (id: number) => any;
     /**
      * Returns the entity's `collideTerrain` component state
      * @type {(id:number) => {callback: function}}
@@ -101,6 +121,17 @@ export class Entities extends ECS {
         collideMask: number;
         callback: Function;
     };
+    getMoveState: (id: any) => any;
+    getGenericPlayerState: any;
+    getHeldItemState: any;
+    getHeldItem: any;
+    getPlayerMeshState: any;
+    getPlayerRotation: any;
+    getHitboxState: any;
+    getReceivesInputs: any;
+    getInventoryState: any;
+    getInventory: any;
+    hasInventory: any;
     /**
      * Pairwise collideEntities event - assign your own function to this
      * property if you want to handle entity-entity overlap events.
@@ -157,6 +188,6 @@ export class Entities extends ECS {
     /**
      * Helper to set up a general entity, and populate with some common components depending on arguments.
     */
-    add(position?: any, width?: number, height?: number, mesh?: any, meshOffset?: any, doPhysics?: boolean, shadow?: boolean): number;
+    add(position?: any, width?: number, height?: number, mesh?: any, meshOffset?: any, doPhysics?: boolean, shadow?: boolean, customEId?: any): any;
 }
 import ECS from "ent-comp";

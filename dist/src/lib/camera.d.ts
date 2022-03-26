@@ -1,3 +1,8 @@
+export function findVectorToPointOnUnitSphere(theta: any, phi: any): number[];
+export function vectorToUnitSphereAngles(x: any, y: any, z: any): {
+    theta: number;
+    phi: number;
+};
 /**
  * `noa.camera` - manages the camera, its position and direction,
  * mouse sensitivity, and so on.
@@ -75,13 +80,21 @@ export class Camera {
     /** Current actual zoom distance. This differs from `zoomDistance` when
      * the camera is in the process of moving towards the desired distance,
      * or when it's obstructed by solid terrain behind the player.
-     * @readonly
     */
-    readonly currentZoom: any;
-    /** @internal */
-    _currentZoom: any;
+    currentZoom: any;
     /** @internal */
     _dirVector: any;
+    onCurrentZoomChange: any;
+    onCurrentZoomSetFromInternals: any;
+    targetX: number;
+    targetY: number;
+    _targetKickback: number;
+    _appliedKickback: number;
+    _approachTargetKickbackRate: number;
+    _lastUpdateBeforeEntityRender: number;
+    _kickbackDiffToApply: number;
+    _kickbackDecreaseRate: number;
+    previousZoom: number;
     /** @internal */
     _localGetTargetPosition(): any;
     /** @internal */
@@ -97,20 +110,17 @@ export class Camera {
     */
     getPosition(): any;
     /**
+     * Returns the direction vector pointing up from the camera (up from top of player's head, for example)
+     */
+    getUpDirection(): number[];
+    setZoomDistance(zoomDistance: any): void;
+    addKickback(kickback: any): void;
+    setKickbackDecreaseRate(decreaseRate: any): void;
+    /**
      * Returns the camera direction vector (read only)
     */
     getDirection(): any;
-    /**
-     * Called before render, if mouseLock etc. is applicable.
-     * Consumes input mouse events x/y, updates camera angle and zoom
-     * @internal
-    */
     applyInputsToCamera(): void;
-    /**
-     *  Called before all renders, pre- and post- entity render systems
-     * @internal
-    */
-    updateBeforeEntityRenderSystems(): void;
-    /** @internal */
+    updateBeforeEntityRenderSystems(dt: any): void;
     updateAfterEntityRenderSystems(): void;
 }

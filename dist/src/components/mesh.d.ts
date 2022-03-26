@@ -4,6 +4,7 @@ export default function _default(noa: any): {
     state: {
         mesh: any;
         offset: any;
+        isPickable: boolean;
     };
     onAdd: (eid: any, state: any) => void;
     onRemove: (eid: any, state: any) => void;

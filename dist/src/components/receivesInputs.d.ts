@@ -8,8 +8,14 @@
 export default function _default(noa: any): {
     name: string;
     order: number;
-    state: {};
-    onAdd: any;
+    state: {
+        joystickHeading: any;
+        isTouchscreen: boolean;
+        canRunCombinator: any;
+        _moving: boolean;
+        _running: boolean;
+    };
+    onAdd: (eid: any, state: any) => void;
     onRemove: any;
-    system: (dt: any, states: any) => void;
+    renderSystem: (dt: any, states: any) => void;
 };

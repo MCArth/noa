@@ -1,3 +1,40 @@
+export class Rendering {
+    /** @internal */
+    constructor(noa: any, opts: any, canvas: any);
+    /** @internal */
+    noa: any;
+    /** Whether to redraw the screen when the game is resized while paused */
+    renderOnResize: boolean;
+    /** @internal */
+    useAO: boolean;
+    /** @internal */
+    aoVals: any;
+    /** @internal */
+    revAoVal: any;
+    /** @internal */
+    meshingCutoffTime: number;
+    /** @internal */
+    _scene: any;
+    /** @internal */
+    _engine: any;
+    /** @internal */
+    _octreeManager: any;
+    MeshMetadataType: typeof MeshMetadataType;
+    getScene(): any;
+    tick(dt: any): void;
+    render(): void;
+    postRender(): void;
+    resize(): void;
+    highlightBlockFace(show: any, posArr: any, normArr: any): void;
+    addMeshToScene(mesh: any, isStatic?: boolean, pos?: any, containingChunk?: any, isPickable?: boolean): void;
+    makeStandardMaterial(name: any): StandardMaterial;
+    postMaterialCreationHook(mat: any): void;
+    prepareChunkForRendering(chunk: any): void;
+    disposeChunkForRendering(chunk: any): void;
+    _rebaseOrigin(delta: any): void;
+    debug_SceneCheck(): string;
+    debug_MeshCount(): void;
+}
 /**
  * `noa.rendering` -
  * Manages all rendering, and the BABYLON scene, materials, etc.
@@ -22,64 +59,13 @@
  * }
  * ```
 */
-export class Rendering {
-    /** @internal */
-    constructor(noa: any, opts: any, canvas: any);
-    /** @internal */
-    noa: any;
-    /** Whether to redraw the screen when the game is resized while paused */
-    renderOnResize: boolean;
-    /** @internal */
-    useAO: boolean;
-    /** @internal */
-    aoVals: any;
-    /** @internal */
-    revAoVal: any;
-    /** @internal */
-    meshingCutoffTime: number;
-    /** @internal */
-    _scene: any;
-    /** @internal */
-    _engine: any;
-    /** @internal */
-    _octreeManager: any;
-    /** The Babylon `scene` object representing the game world. */
-    getScene(): any;
-    /** @internal */
-    tick(dt: any): void;
-    /** @internal */
-    render(): void;
-    /** @internal */
-    postRender(): void;
-    /** @internal */
-    resize(): void;
-    /** @internal */
-    highlightBlockFace(show: any, posArr: any, normArr: any): void;
-    /**
-     * Add a mesh to the scene's octree setup so that it renders.
-     *
-     * @param mesh the mesh to add to the scene
-     * @param isStatic pass in true if mesh never moves (i.e. change octree blocks)
-     * @param pos (optional) global position where the mesh should be
-     * @param containingChunk (optional) chunk to which the mesh is statically bound
-     */
-    addMeshToScene(mesh: any, isStatic?: boolean, pos?: any, containingChunk?: any): void;
-    /**
-     * Create a default standardMaterial:
-     * flat, nonspecular, fully reflects diffuse and ambient light
-     */
-    makeStandardMaterial(name: any): StandardMaterial;
-    /** Exposed hook for if the client wants to do something to newly created materials */
-    postMaterialCreationHook(mat: any): void;
-    /** @internal */
-    prepareChunkForRendering(chunk: any): void;
-    /** @internal */
-    disposeChunkForRendering(chunk: any): void;
-    /** @internal */
-    _rebaseOrigin(delta: any): void;
-    /** @internal */
-    debug_SceneCheck(): string;
-    /** @internal */
-    debug_MeshCount(): void;
+declare function MeshMetadataType(): void;
+declare class MeshMetadataType {
+    markAsDirtyOnRebase: boolean;
+    playerEId: any;
+    gltf: any;
+    _noaIsDynamicContent: boolean;
+    _noaContainingBlock: any;
 }
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+export {};

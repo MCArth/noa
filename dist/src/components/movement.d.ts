@@ -3,21 +3,16 @@
  * State object of the `movement` component
  *
 */
-export function MovementState(): void;
-export class MovementState {
-    heading: number;
-    running: boolean;
-    jumping: boolean;
+export function MovementSettings(): void;
+export class MovementSettings {
     maxSpeed: number;
     moveForce: number;
     responsiveness: number;
-    runningFriction: number;
+    movingFriction: number;
     standingFriction: number;
     airMoveMult: number;
-    jumpImpulse: number;
     jumpForce: number;
     jumpTime: number;
-    airJumps: number;
     _jumpCount: number;
     _currjumptime: number;
     _isJumping: boolean;
@@ -32,7 +27,7 @@ export class MovementState {
 export default function _default(noa: import('..').Engine): {
     name: string;
     order: number;
-    state: MovementState;
+    state: MovementSettings;
     onAdd: any;
     onRemove: any;
     system: (dt: any, states: any) => void;

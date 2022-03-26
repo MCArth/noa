@@ -37,4 +37,5 @@ export class Container extends EventEmitter {
     */
     setPointerLock(lock?: boolean): void;
 }
-import { EventEmitter } from "events";
+import EventEmitter_1 = require("../../types/events");
+import EventEmitter = EventEmitter_1.EventEmitter;
