@@ -28,13 +28,14 @@ export default Chunk
  *
  */
 
-function Chunk(noa, requestID, ci, cj, ck, size, dataArray) {
+function Chunk(noa, requestID, ci, cj, ck, size, dataArray, userData) {
     this.noa = noa
     this.isDisposed = false
 
     // voxel data and properties
     this.requestID = requestID     // id sent to game client
     this.voxels = dataArray
+    this.userData = userData
     this.i = ci
     this.j = cj
     this.k = ck
@@ -71,7 +72,7 @@ function Chunk(noa, requestID, ci, cj, ck, size, dataArray) {
 
 
 // expose logic internally to create and update the voxel data array
-Chunk._createVoxelArray = function (size) {
+export function createVoxelArray(size) {
     var arr = new Uint16Array(size * size * size)
     return ndarray(arr, [size, size, size])
 }

@@ -5,7 +5,7 @@
 
 
 import EventEmitter from 'events'
-import Chunk from './chunk'
+import Chunk, { createVoxelArray } from './chunk'
 import { LocationQueue, ChunkStorage, locationHasher, loopForTime } from './util'
 
 var PROFILE_EVERY = 0               // ticks
@@ -474,6 +474,7 @@ World.prototype.tick = function () {
     }
 
     var doMeshing = this.meshingTick === 3
+    // var doMeshing = this.meshingTick === 1
 
     // process (create or mesh) some chunks, up to max iteration time
     var ptime = Math.max(1, this.maxProcessingPerTick || 0)
@@ -816,7 +817,7 @@ function possiblyQueueChunkForMeshing(world, chunk) {
 // create chunk object and request voxel data from client
 function requestNewChunk(world, i, j, k) {
     var size = world._chunkSize
-    var dataArr = Chunk._createVoxelArray(world._chunkSize)
+    var dataArr = createVoxelArray(world._chunkSize)
     var worldName = world.noa.worldName
     var requestID = [i, j, k, worldName].join('|')
     var x = i * size
@@ -846,9 +847,8 @@ function setChunkData(world, reqID, array, userData) {
     if (!chunk) {
         // if chunk doesn't exist, create and init
         var size = world._chunkSize
-        chunk = new Chunk(world.noa, reqID, i, j, k, size, array)
+        chunk = new Chunk(world.noa, reqID, i, j, k, size, array, userData)
         world._storage.storeChunkByIndexes(i, j, k, chunk)
-        chunk.userData = userData
         world.noa.rendering.prepareChunkForRendering(chunk)
         world.emit('chunkAdded', chunk)
     } else {

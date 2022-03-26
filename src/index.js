@@ -267,7 +267,7 @@ export class Engine extends EventEmitter {
         this.actionOrigin = null
         this.actionDirection = null
 
-        // Setup in bloxd Sound.js
+        // Setup in bloxd Sound.ts
         this.sounds = {
             pvpSounds: null,
             pvpSoundsTrackName: null,
