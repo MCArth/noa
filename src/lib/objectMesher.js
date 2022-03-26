@@ -92,7 +92,7 @@ function ObjectMesher(noa) {
             var handlers = noa.registry._blockHandlerLookup[blockID]
             var onCreate = handlers && handlers.onCustomMeshCreate
             if (onCreate) {
-                transformObj.position.copyFromFloats(0.5, 0, 0.5)
+                transformObj.position.copyFromFloats(0.5, 0.5, 0.5)
                 transformObj.scaling.setAll(1)
                 transformObj.rotation.setAll(0)
                 onCreate(transformObj, x, y, z)
@@ -246,7 +246,7 @@ InstanceManager.prototype.addInstance = function (chunk, key, i, j, k, transform
     } else {
         var matArray = tempMatrixArray
         matArray[12] = (chunk.x - rebaseVec[0]) + i + 0.5
-        matArray[13] = (chunk.y - rebaseVec[1]) + j
+        matArray[13] = (chunk.y - rebaseVec[1]) + j + 0.5
         matArray[14] = (chunk.z - rebaseVec[2]) + k + 0.5
         copyMatrixData(matArray, 0, this.buffer, ix)
     }
