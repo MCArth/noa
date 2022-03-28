@@ -122,6 +122,7 @@ export class Rendering {
 
         // bloxd start
         this.MeshMetadataType = MeshMetadataType
+        this._highlightMesh = null
         // bloxd end
 
         // for debugging
@@ -242,21 +243,16 @@ Rendering.prototype.resize = function () {
 Rendering.prototype.highlightBlockFace = function (show, posArr, normArr) {
     var m = getHighlightMesh(this)
     if (show) {
+        // bloxd change start - use my own highlight mesh
+
         // floored local coords for highlight mesh
         this.noa.globalToLocal(posArr, null, hlpos)
-        // offset to avoid z-fighting, bigger when camera is far away
-        var dist = glvec3.dist(this.noa.camera._localGetPosition(), hlpos)
-        var slop = 0.001 + 0.001 * dist
         for (var i = 0; i < 3; i++) {
-            if (normArr[i] === 0) {
-                hlpos[i] += 0.5
-            } else {
-                hlpos[i] += (normArr[i] > 0) ? 1 + slop : -slop
-            }
+            hlpos[i] += 0.5
         }
         m.position.copyFromFloats(hlpos[0], hlpos[1], hlpos[2])
-        m.rotation.x = (normArr[1]) ? Math.PI / 2 : 0
-        m.rotation.y = (normArr[0]) ? Math.PI / 2 : 0
+
+        // bloxd change end
     }
     m.setEnabled(show)
 }
