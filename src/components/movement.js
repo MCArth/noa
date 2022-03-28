@@ -22,6 +22,7 @@ export function MovementSettings() {
     this.movingFriction = 0
     this.standingFriction = 5
 
+    this.getAirJumpCount = null
     this.airMoveMult = 0.5
     this.jumpForce = 0
     this.jumpTime = 500 // ms
@@ -95,7 +96,7 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
 
     // jumping
     var onGround = (body.atRestY() < 0)
-    var canjump = (onGround || state._jumpCount < noa.serverSettings.airJumpCount)
+    var canjump = (onGround || state._jumpCount < state.getAirJumpCount())
     if (onGround) {
         state._isJumping = false
         state._jumpCount = 0
