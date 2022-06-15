@@ -12,14 +12,18 @@ export default function (noa) {
         state: {
             mesh: null,
             offset: null,
-            isPickable: false
+            isPickable: false,
+            shouldAddMeshToScene: true,
         },
 
 
         onAdd: function (eid, state) {
             // implicitly assume there's already a position component
             var posDat = noa.ents.getPositionData(eid)
-            if (state.mesh) {
+            if (!state.mesh) {
+                throw new Error('Mesh component added without a mesh - probably a bug!')
+            }
+            if (state.shouldAddMeshToScene) {
                 noa.rendering.addMeshToScene(
                     state.mesh,
                     false,
@@ -33,9 +37,7 @@ export default function (noa) {
                 //     noa.rendering.addMeshToScene(descendant, false);
                 // }
                 // CHANGE ARTHUR END
-            } else {
-                throw new Error('Mesh component added without a mesh - probably a bug!')
-            }
+            } 
             if (!state.offset) state.offset = vec3.create()
 
             // set mesh to correct position
