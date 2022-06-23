@@ -3,5 +3,4 @@ node_modules
 *-error.log
 ignore/
 
-package-lock.json
 .idea
