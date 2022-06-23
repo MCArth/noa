@@ -384,7 +384,7 @@ function posWithinRect(pos, [lx, ly, lz, hx, hy, hz]) {
     return pos[0] >= lx && pos[1] >= ly && pos[2] >= lz && pos[0] <= hx && pos[1] <= hy && pos[2] <= hz
 }
 
-function posSatisfiesModifyConstraints(noaWorld, pos, coordSet, oppCoordSet, typeSet, oppTypeSet, rectList, defaultReturn) {
+export function posSatisfiesModifyConstraints(pos, idAtPos, coordSet, oppCoordSet, typeSet, oppTypeSet, rectList, defaultReturn) {
     const posId = pos.join('|')
     if (coordSet.has(posId)) {
         return defaultReturn
@@ -392,10 +392,10 @@ function posSatisfiesModifyConstraints(noaWorld, pos, coordSet, oppCoordSet, typ
     if (oppCoordSet.has(posId)) {
         return !defaultReturn
     }
-    if (typeSet.has(noaWorld.getBlockID(pos[0], pos[1], pos[2]))) {
+    if (typeSet.has(idAtPos)) {
         return defaultReturn
     }
-    if (oppTypeSet.has(noaWorld.getBlockID(pos[0], pos[1], pos[2]))) {
+    if (oppTypeSet.has(idAtPos)) {
         return !defaultReturn
     }
     for (const rect of rectList) {
@@ -414,11 +414,11 @@ function posSatisfiesModifyConstraints(noaWorld, pos, coordSet, oppCoordSet, typ
 World.prototype.canChangeBlock = function (pos) {
     // if can't Change then it must be explicitly allowed
     if (!this.noa.serverSettings.canChange) {
-        return posSatisfiesModifyConstraints(this, pos, this.canChangeBlockCoord, this.cantChangeBlockCoord, this.canChangeBlockType, this.cantChangeBlockType, this.canChangeBlockRect, true)
+        return posSatisfiesModifyConstraints(pos, this.getBlockID(pos[0], pos[1], pos[2]), this.canChangeBlockCoord, this.cantChangeBlockCoord, this.canChangeBlockType, this.cantChangeBlockType, this.canChangeBlockRect, true)
     }
     // can Change - could be explicitly disallowed
     else {
-        return posSatisfiesModifyConstraints(this, pos, this.cantChangeBlockCoord, this.canChangeBlockCoord, this.cantChangeBlockType, this.canChangeBlockType, this.cantChangeBlockRect, false)
+        return posSatisfiesModifyConstraints(pos, this.getBlockID(pos[0], pos[1], pos[2]), this.cantChangeBlockCoord, this.canChangeBlockCoord, this.cantChangeBlockType, this.canChangeBlockType, this.cantChangeBlockRect, false)
     }
 }
 
