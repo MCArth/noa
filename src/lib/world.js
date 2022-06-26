@@ -698,13 +698,20 @@ function invalidateChunksInBox(world, box) {
     }
     world._chunksKnown.forEach(loc => {
         for (var i = 0; i < 3; i++) {
-            if (loc[i] < min[i] || loc[i] >= max[i]) return
+            if (loc[i] < min[i] || loc[i] > max[i]) return // bloxd fix
         }
         world._chunksToRemove.add(loc[0], loc[1], loc[2])
         world._chunksToMesh.remove(loc[0], loc[1], loc[2])
         world._chunksToRequest.remove(loc[0], loc[1], loc[2])
         world._chunksToMeshFirst.remove(loc[0], loc[1], loc[2])
     })
+
+    // bloxd start
+    while (!processRemoveQueue(world)) { // If we change to not do this, we will need to change resetMap in bloxd resetChunk
+    }
+    // bloxd end
+
+    world._chunkAddSearchFrom = 0 // bloxd fix - add this in so we get new chunk requests when calling this from resetChunk
 }
 
 
