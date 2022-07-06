@@ -22,6 +22,7 @@ const movement = require('../components/movement.js')
 const physics = require('../components/physics.js')
 const position = require('../components/position.js')
 const moveState = require('../components/moveState.js')
+const collideTerrain = require('../components/collideTerrain')
 
 const components = {
     'movement': {fn: movement, server: true},
@@ -32,7 +33,7 @@ const components = {
     'shadow': {},
     'smoothCamera': {},
     'collideEntities': {},
-    'collideTerrain': {},
+    'collideTerrain': {fn: collideTerrain, server: true},
     'fadeOnZoom': {},
     'followsEntity': {},
     'mesh': {},
@@ -246,7 +247,6 @@ export class Entities extends ECS {
         this.getHeldItemState = null
         this.getHeldItem = null
         this.getPlayerMeshState = null
-        this.getPlayerRotation = null
         this.getHitboxState = null
         this.getReceivesInputs = null
 
