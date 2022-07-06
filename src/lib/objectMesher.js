@@ -95,7 +95,7 @@ function ObjectMesher(noa) {
                 transformObj.position.copyFromFloats(0.5, 0.5, 0.5)
                 transformObj.scaling.setAll(1)
                 transformObj.rotation.setAll(0)
-                onCreate(transformObj, x, y, z)
+                onCreate(transformObj, x, y, z, blockID)
             }
             var mgr = getManager(blockID)
             var xform = (onCreate) ? transformObj : null
