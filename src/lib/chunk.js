@@ -154,9 +154,11 @@ Chunk.prototype.set = function (i, j, k, newID) {
     var opacityChanged = (opaqueLookup[oldID] !== opaqueLookup[newID])
 
     if (objOld || objNew) this._objectsDirty = true
-    if (solidityChanged || opacityChanged
-        || (!objNew && (newID !== 0))) this._terrainDirty = true
-
+    var wasTerrain = (!objOld && (oldID !== 0))
+    var nowTerrain = (!objNew && (newID !== 0))
+    if (solidityChanged || opacityChanged || wasTerrain || nowTerrain) {
+        this._terrainDirty = true
+    }
     if (this._terrainDirty || this._objectsDirty) {
         this.noa.world._queueChunkForRemesh(this)
     }
