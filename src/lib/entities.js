@@ -252,6 +252,7 @@ export class Entities extends ECS {
 
         this.getInventoryState = null
         this.getInventory = null
+        this.getInvenOps = null
         this.hasInventory = null
         // bloxd
 
