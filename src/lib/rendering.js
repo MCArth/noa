@@ -17,6 +17,7 @@ import "@babylonjs/core/Meshes/instancedMesh" // Needed for instances
 import '@babylonjs/core/Rendering/outlineRenderer' // required for overlaying meshes
 import "@babylonjs/core/Materials/PBR/pbrBaseMaterial" // Needed for pbr material shaders
 import "@babylonjs/core/Materials/Textures/cubeTexture" // needed for skybox
+import {ParticleSystem} from '@babylonjs/core/Particles' // needed as side effect bloxd
 import { Engine } from '@babylonjs/core/Engines/engine'
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
@@ -133,6 +134,7 @@ export class Rendering {
 // Constructor helper - set up the Babylon.js scene and basic components
 function initScene(self, canvas, opts) {
 
+    // bloxd change start use NullEngine on server
     // init internal properties
     if (process.env.REACT_APP_IS_CLIENT === 'true') {
         self._engine = new Engine(canvas, opts.antiAlias, {
@@ -140,12 +142,11 @@ function initScene(self, canvas, opts) {
         })
     }
     else {
-        self._engine = new NullEngine(canvas, opts.antiAlias, {
-            preserveDrawingBuffer: opts.preserveDrawingBuffer,
-        })
+        self._engine = new NullEngine()
     }
 
     self._scene = new Scene(self._engine)
+    // bloxd change end
     var scene = self._scene
     // remove built-in listeners
     scene.detachControl()
