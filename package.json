@@ -35,7 +35,7 @@
         "node-require-context": "^1.0.0",
         "require-context": "^1.1.0",
         "voxel-aabb-sweep": "^0.5.0",
-        "voxel-physics-engine": "^0.11.1"
+        "voxel-physics-engine": "github:MCArth/voxel-physics-engine"
     },
     "peerDependencies": {
         "@babylonjs/core": "5.0.0-alpha.48"
