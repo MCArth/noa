@@ -598,7 +598,9 @@ World.prototype._queueChunkForRemesh = function (chunk) {
 // helper - chunk indexes of where the player is
 function getPlayerChunkIndexes(world) {
     var [x, y, z] = world.noa.entities.getPosition(world.noa.playerEntity)
-    return world._coordsToChunkIndexes(x, y, z)
+
+    // Floor the co-ordinates to ensure correct result (-0.9>>5 gives chunky=0 when chunky should really be -1)
+    return world._coordsToChunkIndexes(Math.floor(x), Math.floor(y), Math.floor(z))
 }
 
 
