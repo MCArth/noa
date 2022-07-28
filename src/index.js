@@ -276,6 +276,8 @@ export class Engine extends EventEmitter {
         // util references used on server
         this.room = null
         this.pluginApi = null
+
+        this.isBodyInsideUnloadedBlock = opts.isBodyInsideUnloadedBlock
         // bloxd end
 
         // various internals
@@ -361,7 +363,9 @@ export class Engine extends EventEmitter {
             checkWorldOffset(this)
             this.world.tick() // chunk creation/removal
             profile_hook('world')
-            if (!this.world.playerChunkLoaded) {
+            if ((this.isBodyInsideUnloadedBlock && this.isBodyInsideUnloadedBlock(this.ents.getPhysicsBody(this.playerEntity))) 
+                || !this.world.playerChunkLoaded) 
+            {
                 // when waiting on worldgen, just tick the meshing queue and exit
                 this.rendering.tick(dt)
                 return
