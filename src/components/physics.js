@@ -88,7 +88,7 @@ export default function (noa) {
             // offsetting each entity into the past by tickRate - dt
             // http://gafferongames.com/game-physics/fix-your-timestep/
 
-            var backtrackAmt = (tickMS - tickTime) / 1000
+            var backtrackAmt = Math.min((tickMS - tickTime) / 1000, 0) // bloxd fix - never interpolate forward
             for (var i = 0; i < states.length; i++) {
                 var state = states[i]
                 var id = state.__id
