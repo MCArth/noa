@@ -166,7 +166,7 @@ Chunk.prototype.set = function (i, j, k, newID) {
     }
 
     // neighbors only affected if solidity/opacity/terrain changed on an edge // bloxd fix
-    if (solidityChanged || opacityChanged || wasTerrain || nowTerrain) { // bloxd fix
+    if (solidityChanged || opacityChanged || wasTerrain || nowTerrain) { // bloxd fix - water changes on edge of chunk properly remeshes neighbours 
         var edge = this.size - 1
         var imin = (i === 0) ? -1 : 0
         var jmin = (j === 0) ? -1 : 0
