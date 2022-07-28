@@ -154,17 +154,19 @@ Chunk.prototype.set = function (i, j, k, newID) {
     var opacityChanged = (opaqueLookup[oldID] !== opaqueLookup[newID])
 
     if (objOld || objNew) this._objectsDirty = true
+
     var wasTerrain = (!objOld && (oldID !== 0))
     var nowTerrain = (!objNew && (newID !== 0))
     if (solidityChanged || opacityChanged || wasTerrain || nowTerrain) {
         this._terrainDirty = true
     }
+
     if (this._terrainDirty || this._objectsDirty) {
         this.noa.world._queueChunkForRemesh(this)
     }
 
-    // neighbors only affected if solidity or opacity changed on an edge
-    if (solidityChanged || opacityChanged) {
+    // neighbors only affected if solidity/opacity/terrain changed on an edge // bloxd fix
+    if (solidityChanged || opacityChanged || wasTerrain || nowTerrain) { // bloxd fix
         var edge = this.size - 1
         var imin = (i === 0) ? -1 : 0
         var jmin = (j === 0) ? -1 : 0
