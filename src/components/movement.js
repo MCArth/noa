@@ -17,13 +17,13 @@ import vec3 from 'gl-vec3'
 export function MovementSettings() {
     // options:
     this.maxSpeed = 4
-    this.moveForce = 50 // Increasing this amount means your top speed is higher. Influences the magnitude of the movement if not capped by responsiveness.
-    this.responsiveness = 10 // Increasing this means you accelerate to top speed faster. Influences the magnitude the movement is capped at.
+    this.moveForce = 80 // Influences the magnitude of the movement if not capped by responsiveness.
+    this.responsiveness = 20 // Increasing this means you accelerate to top speed faster. Influences the magnitude the movement is capped at.
     this.movingFriction = 0
     this.standingFriction = 5
 
     this.getAirJumpCount = null
-    this.airMoveMult = 0.5
+    this.airMoveMult = 1
     this.jumpForce = 0
     this.jumpTime = 500 // ms
 
@@ -31,6 +31,11 @@ export function MovementSettings() {
     this._jumpCount = 0
     this._currjumptime = 0
     this._isJumping = false
+
+    // state needed for bhopping
+    this._bhopCount = 0
+    this._onGroundPrevTick = true
+    this._hadJumpInputPrevTick = false
 }
 
 
@@ -111,17 +116,53 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
                 body.applyForce([0, jf, 0])
                 state._currjumptime -= dt
             }
-        } else if (canjump) { // start new jump
-            state._isJumping = true
-            if (!onGround) state._jumpCount++
-            state._currjumptime = state.jumpTime
-            body.applyImpulse([0, noa.serverSettings.jumpAmount, 0])
-            // clear downward velocity on airjump
-            if (!onGround && body.velocity[1] < 0) body.velocity[1] = 0
         }
-    } else {
+        else if (canjump) { // start new jump
+            state._isJumping = true
+            body.applyImpulse([0, noa.serverSettings.jumpAmount, 0])
+            state._currjumptime = state.jumpTime
+            if (onGround) {
+                // if (moveState.speed) { // uncomment to test bhopping
+                if (!state._onGroundPrevTick && !state._hadJumpInputPrevTick && moveState.speed) {
+                    const baseSpeedIncrease = 0.15
+
+                    let increase = 0
+                    if (state._bhopCount === 0) {
+                        increase = baseSpeedIncrease*1
+                    } 
+                    else if (state._bhopCount === 1) {
+                        increase = baseSpeedIncrease*1.5
+                    }
+                    else if (state._bhopCount >= 2) {
+                        increase = baseSpeedIncrease*2
+                    }
+
+                    moveState.speedMultiplier.setMultiplierType('bhop', 1+increase)
+                    state._bhopCount++
+                }
+                else {
+                    state._bhopCount = 0
+                    moveState.speedMultiplier.setMultiplierType('bhop', 1)
+                }
+            }
+            else {
+                state._jumpCount++
+                if (body.velocity[1] < 0) {
+                    body.velocity[1] = 0
+                }
+            }
+        }
+    } 
+    else {
         state._isJumping = false
+        if (onGround) {
+            state._bhopCount = 0
+            moveState.speedMultiplier.setMultiplierType('bhop', 1)
+        }
     }
+
+    state._onGroundPrevTick = onGround
+    state._hadJumpInputPrevTick = moveState.jumping
 
     // apply movement forces if entity is moving, otherwise just friction
     var maxAmountToMove = tempvec
@@ -148,8 +189,15 @@ function applyMovementPhysics(noa, dt, state, moveState, body) {
             if (!onGround) magnitudeToMove *= state.airMoveMult
 
             var maxMagnitude = state.responsiveness * pushLen
-            if (magnitudeToMove > maxMagnitude) magnitudeToMove = maxMagnitude
 
+            if (pushLen < 0.3) {
+                // Prevent swapping of push direction at low pushLens
+                maxMagnitude *= pushLen
+            }
+
+            if (magnitudeToMove > maxMagnitude) {
+                magnitudeToMove = maxMagnitude
+            }
             vec3.scale(amountToActuallyMove, amountToActuallyMove, magnitudeToMove)
             body.applyForce(amountToActuallyMove)
         }
