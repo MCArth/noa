@@ -247,6 +247,8 @@ export class Engine extends EventEmitter {
         }
 
         // bloxd start
+        this.bloxd = undefined
+
         this.colyClient = undefined
         this.GA = undefined
         this.gaENums = undefined
