@@ -197,15 +197,10 @@ export class Engine extends EventEmitter {
         body.gravityMultiplier = 2 // less floaty
         body.autoStep = opts.playerAutoStep // auto step onto blocks
 
-        // input component - sets entity's movement state from key inputs
-        ents.addComponent(this.playerEntity, ents.names.receivesInputs)
+        // bloxd change - don't add movement components to player
 
         // add a component to make player mesh fade out when zooming in
         ents.addComponent(this.playerEntity, ents.names.fadeOnZoom)
-
-        // movement component - applies movement forces
-
-        ents.addComponent(this.playerEntity, ents.names.movement)
 
         /** Manages the game's camera, view angle, sensitivity, etc. */
         this.camera = new Camera(this, opts)
@@ -370,6 +365,7 @@ export class Engine extends EventEmitter {
                 this.rendering.tick(dt)
                 return
             }
+            this.emit('beforePhysicsTick', dt)
             this.physics.tick(dt) // iterates physics
             profile_hook('physics')
             this._objectMesher.tick() // rebuild objects if needed

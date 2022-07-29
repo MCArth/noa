@@ -18,15 +18,11 @@ var defaultOptions = {
     shadowDistance: 10,
 }
 
-const movement = require('../components/movement.js')
 const physics = require('../components/physics.js')
 const position = require('../components/position.js')
-const moveState = require('../components/moveState.js')
 const collideTerrain = require('../components/collideTerrain')
 
 const components = {
-    'movement': {fn: movement, server: true},
-    'moveState': {fn: moveState, server: true},
     'physics': {fn: physics, server: true},
     'position': {fn: position, server: true},
     'receivesInputs': {},
@@ -221,11 +217,7 @@ export class Entities extends ECS {
         */
         this.getMeshData = this.getStateAccessor(this.names.mesh)
 
-        /**
-         * Returns the entity's `movement` component state
-         * @type {(id:number) => import('../components/movement').MovementState}
-        */
-        this.getMovement = this.getStateAccessor(this.names.movement)
+        this.getMovement = null // bloxd change - movement accessor assigned in bloxd
 
         /**
          * Returns the entity's `collideTerrain` component state
@@ -240,7 +232,7 @@ export class Entities extends ECS {
          *      collideMask:number, callback: function}}
         */
         this.getCollideEntities = this.getStateAccessor(this.names.collideEntities)
-        this.getMoveState = this.getStateAccessor(this.names.moveState)
+        this.getMoveState = null // bloxd change - movestate accessor assigned in bloxd
 
         // Bloxd accessors
         this.getGenericPlayerState = null
