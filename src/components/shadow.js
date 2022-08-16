@@ -34,6 +34,8 @@ export default function (noa, dist) {
         state: {
             size: 0.5,
             _mesh: null,
+
+            enabledCombinator: null,
         },
 
 
@@ -57,11 +59,7 @@ export default function (noa, dist) {
                 var state = states[i]
                 var posState = noa.ents.getPositionData(state.__id)
                 var physState = noa.ents.getPhysics(state.__id)
-                let enabledCombinator
-                if (noa.entities.hasComponent(state.__id, "genericPlayerState")) {
-                    enabledCombinator = noa.entities.getState(state.__id, "genericPlayerState").shadowMeshEnabledCombinator
-                }
-                updateShadowHeight(noa, posState, physState, state._mesh, state.size, dist, cpos, enabledCombinator)
+                updateShadowHeight(noa, posState, physState, state._mesh, state.size, dist, cpos, state.enabledCombinator)
             }
         },
 
@@ -96,7 +94,8 @@ function updateShadowHeight(noa, posDat, physDat, mesh, size, shadowDist, camPos
         var res = noa._localPick(posDat._renderPosition, down, shadowDist)
         if (!res) {
             if (enabledCombinator) {
-                enabledCombinator.setBooleanType('placeToPutShadowExists', false)
+                const nowEnabled = enabledCombinator.setBooleanType('placeToPutShadowExists', false)
+                mesh.setEnabled(nowEnabled)
             }
             else {
                 mesh.setEnabled(false)
@@ -120,7 +119,8 @@ function updateShadowHeight(noa, posDat, physDat, mesh, size, shadowDist, camPos
     var scale = size * 0.7 * (1 - dist / shadowDist)
     mesh.scaling.copyFromFloats(scale, scale, scale)
     if (enabledCombinator) {
-        enabledCombinator.setBooleanType('placeToPutShadowExists', true)
+        const nowEnabled = enabledCombinator.setBooleanType('placeToPutShadowExists', true)
+        mesh.setEnabled(nowEnabled)
     }
     else {
         mesh.setEnabled(true)
