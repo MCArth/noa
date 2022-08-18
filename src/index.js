@@ -142,20 +142,23 @@ export class Engine extends EventEmitter {
         /** Child module for managing the game's container, canvas, etc. */
         this.container = new Container(this, opts)
 
+        // bloxd start - comment define properties that are entering noa into slow dictionary mode
         /** The game's tick rate (ticks per second) 
          * @readonly 
         */
         this.tickRate = this.container._shell.tickRate
-        Object.defineProperty(this, 'tickRate', {
-            get: () => this.container._shell.tickRate
-        })
+        // Object.defineProperty(this, 'tickRate', {
+            // get: () => this.container._shell.tickRate
+        // })
 
         /** The game's max framerate (use `0` for uncapped) */
         this.maxRenderRate = this.container._shell.maxRenderRate
-        Object.defineProperty(this, 'maxRenderRate', {
-            get: () => this.container._shell.maxRenderRate,
-            set: (v) => { this.container._shell.maxRenderRate = v || 0 },
-        })
+        // Object.defineProperty(this, 'maxRenderRate', {
+            // get: () => this.container._shell.maxRenderRate,
+            // set: (v) => { this.container._shell.maxRenderRate = v || 0 },
+        // })
+        // bloxd end
+
 
 
         /** Inputs manager - abstracts key/mouse input */
