@@ -38,7 +38,7 @@
         "voxel-physics-engine": "github:MCArth/voxel-physics-engine#add-preventFallOffEdge"
     },
     "peerDependencies": {
-        "@babylonjs/core": "5.20.0"
+        "@babylonjs/core": "5.2.0"
     },
     "devDependencies": {
         "@types/node": "^16.6.2",
