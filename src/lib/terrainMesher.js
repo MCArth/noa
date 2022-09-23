@@ -710,13 +710,16 @@ function GreedyMesher(noa) {
     }
 
     function addUVs(uvArr, offset, d, w, h, dir) {
-        for (var i = 0; i < 8; i++) uvArr[offset + i] = 0
+        const delta = 0.0015
+        for (var i = 0; i < 8; i++) uvArr[offset + i] = delta
         if (d === 2) {
-            uvArr[offset + 1] = uvArr[offset + 3] = h
-            uvArr[offset + 2] = uvArr[offset + 4] = -dir * w
+            uvArr[offset + 1] = uvArr[offset + 3] = h-delta
+            uvArr[offset + 2] = uvArr[offset + 4] = -dir * (w-delta)
+            uvArr[offset + 0] = uvArr[offset + 6] = -dir*delta
         } else {
-            uvArr[offset + 1] = uvArr[offset + 7] = w
-            uvArr[offset + 4] = uvArr[offset + 6] = dir * h
+            uvArr[offset + 1] = uvArr[offset + 7] = w-delta
+            uvArr[offset + 4] = uvArr[offset + 6] = dir * (h-delta)
+            uvArr[offset + 0] = uvArr[offset + 2] = dir*delta
         }
     }
 
