@@ -67,14 +67,17 @@ export class Engine extends EventEmitter {
     timeScale: number;
     /** Child module for managing the game's container, canvas, etc. */
     container: Container;
-    /** The game's tick rate (ticks per second)
+    /** The game's tick rate (number of ticks per second)
+     * @type {number}
      * @readonly
     */
-    readonly tickRate: any;
-    /** The game's max framerate (use `0` for uncapped) */
-    maxRenderRate: any;
-    /** Inputs manager - abstracts key/mouse input */
-    inputs: import("./lib/inputs").Inputs;
+    readonly tickRate: number;
+    /** The game's max framerate (use `0` for uncapped)
+     * @type {number}
+     */
+    maxRenderRate: number;
+    /** Manages key and mouse input bindings */
+    inputs: Inputs;
     /** A registry where voxel/material properties are managed */
     registry: Registry;
     /** Manages the world, chunks, and all voxel data */
@@ -88,11 +91,13 @@ export class Engine extends EventEmitter {
     /** Alias to `noa.entities` */
     ents: Entities;
     /** Entity id for the player entity */
-    playerEntity: any;
+    playerEntity: number;
     /** Manages the game's camera, view angle, sensitivity, etc. */
     camera: Camera;
-    /** How far to check for a solid voxel the player is currently looking at */
-    blockTestDistance: any;
+    /** How far to check for a solid voxel the player is currently looking at
+     * @type {number}
+    */
+    blockTestDistance: number;
     /**
      * Callback to determine which voxels can be targeted.
      * Defaults to a solidity check, but can be overridden with arbitrary logic.
@@ -115,23 +120,6 @@ export class Engine extends EventEmitter {
         adjacent: number[];
     };
     defaultBlockHighlightFunction: (tgt: any) => void;
-    colyClient: any;
-    GA: any;
-    gaENums: any;
-    logErrorMessage: (str: any, err: any) => never;
-    serverSettings: {};
-    otherPlayerSettings: {};
-    playerNames: {};
-    colyRoom: any;
-    serverPlayerEntity: any;
-    actionOrigin: any;
-    actionDirection: any;
-    sounds: {
-        pvpSounds: any;
-        pvpSoundsTrackName: any;
-    };
-    room: any;
-    pluginApi: any;
     /** @internal */
     _terrainMesher: TerrainMesher;
     /** @internal */
@@ -145,8 +133,6 @@ export class Engine extends EventEmitter {
     };
     /** @internal */
     _prevTargetHash: number;
-    /** @internal */
-    makeTargetHash: (pos: any, norm: any, id: any) => number;
     /** @internal */
     _pickPos: any;
     /** @internal */
@@ -249,16 +235,10 @@ export class Engine extends EventEmitter {
         normal: number[];
         _localPosition: number[];
     };
-    pickBlock(pos: any, vec: any, dist: any, blockIdTestFunction: any): {
-        blockID: number;
-        position: any[];
-        normal: any[];
-        adjacent: any[];
-    };
-    updateBlockTargets(forceHighlightUpdate?: boolean): void;
 }
-import { EventEmitter } from "../types/events";
+import { EventEmitter } from "events";
 import { Container } from "./lib/container";
+import { Inputs } from "./lib/inputs";
 import { Registry } from "./lib/registry";
 import { World } from "./lib/world";
 import { Rendering } from "./lib/rendering";

@@ -73,14 +73,12 @@ export function createInputs(noa, opts, element) {
  *     "crouch": ["Z", "<caps-lock>", "\\", "C"],
  * }
  * ```
- *
- * @typedef {Object} Inputs
+ * 
+ *  @typedef {Object} Inputs
  * @prop {boolean} disabled
  * @prop {Object} state Maps key binding names to input states.
  * @prop {(binding:string, ...keyCodes:string[]) => void} bind Binds one or more keycodes to a binding.
  * @prop {(binding:string) => void} unbind Unbinds all keyCodes from a binding.
  * @prop {import('events').EventEmitter} down Emits input start events (i.e. keyDown).
  * @prop {import('events').EventEmitter} up Emits input end events (i.e. keyUp).
-*/
-
-
+ */

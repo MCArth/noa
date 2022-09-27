@@ -6,7 +6,6 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { Octree } from '@babylonjs/core/Culling/Octrees/octree'
 import { OctreeBlock } from '@babylonjs/core/Culling/Octrees/octreeBlock'
-import '@babylonjs/core/Culling/Octrees/'
 import { OctreeSceneComponent } from '@babylonjs/core/Culling/Octrees/octreeSceneComponent'
 
 import { locationHasher, removeUnorderedListItem } from './util'

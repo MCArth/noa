@@ -1,13 +1,15 @@
-export default TerrainMesher;
-declare function TerrainMesher(noa: any): void;
-declare class TerrainMesher {
-    constructor(noa: any);
+/** @param {import('../index').Engine} noa  */
+export default function TerrainMesher(noa: import('../index').Engine): void;
+export default class TerrainMesher {
+    /** @param {import('../index').Engine} noa  */
+    constructor(noa: import('../index').Engine);
+    _defaultMaterial: import("@babylonjs/core/Materials/standardMaterial").StandardMaterial;
     initChunk: (chunk: any) => void;
+    disposeChunk: (chunk: any) => void;
     /**
      * meshing entry point and high-level flow
-     * @param {Chunk} chunk
+     * @param {import('./chunk').default} chunk
      */
-    meshChunk: (chunk: Chunk, matGetter: any, colGetter: any, ignoreMaterials: any, useAO: any, aoVals: any, revAoVal: any) => void;
-    disposeChunk: (chunk: any) => void;
+    meshChunk: (chunk: import('./chunk').default, ignoreMaterials?: boolean) => void;
 }
 import Chunk from "./chunk";

@@ -3,8 +3,7 @@
  * @module noa.rendering
  */
 
-
-var glvec3 = require('gl-vec3')
+import glvec3 from 'gl-vec3'
 
 import { SceneOctreeManager } from './sceneOctreeManager'
 
@@ -21,13 +20,11 @@ import { Engine } from '@babylonjs/core/Engines/engine'
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
-import { Color3 } from '@babylonjs/core/Maths/math.color'
+import { Color3, Color4 } from '@babylonjs/core/Maths/math.color'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
-import { Mesh } from '@babylonjs/core/Meshes/mesh'
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode'
-import '@babylonjs/core/Meshes/Builders/planeBuilder'
-import '@babylonjs/core/Meshes/Builders/linesBuilder'
-
+import { CreateLines } from '@babylonjs/core/Meshes/Builders/linesBuilder'
+import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder'
 
 
 
@@ -91,7 +88,10 @@ function MeshMetadataType() {
 
 export class Rendering {
 
-    /** @internal */
+    /** 
+     * @internal 
+     * @param {import('../index').Engine} noa  
+    */
     constructor(noa, opts, canvas) {
         opts = Object.assign({}, defaults, opts)
         /** @internal */
@@ -118,7 +118,7 @@ export class Rendering {
         this._engine = null
         /** @internal */
         this._octreeManager = null
-        initScene(this, canvas, opts)
+        this.initScene(canvas, opts)
 
         // bloxd start
         this.MeshMetadataType = MeshMetadataType
@@ -128,63 +128,65 @@ export class Rendering {
         // for debugging
         if (opts.showFPS) setUpFPS()
     }
-}
 
-// Constructor helper - set up the Babylon.js scene and basic components
-function initScene(self, canvas, opts) {
 
-    // bloxd change start use NullEngine on server
-    // init internal properties
-    if (process.env.REACT_APP_IS_CLIENT === 'true') {
-        self._engine = new Engine(canvas, opts.antiAlias, {
-            preserveDrawingBuffer: opts.preserveDrawingBuffer,
-        })
+
+
+    // Constructor helper - set up the Babylon.js scene and basic components
+    initScene(canvas, opts) {
+
+        // init internal properties
+        // bloxd change start use NullEngine on server
+        // init internal properties
+        if (process.env.REACT_APP_IS_CLIENT === 'true') {
+            this._engine = new Engine(canvas, opts.antiAlias, {
+                preserveDrawingBuffer: opts.preserveDrawingBuffer,
+            })
+        }
+        else {
+            this._engine = new NullEngine()
+        }
+        // bloxd change end
+        this._scene = new Scene(this._engine)
+        var scene = this._scene
+        // remove built-in listeners
+        scene.detachControl()
+
+        // octree manager class
+        var blockSize = Math.round(opts.octreeBlockSize)
+        this._octreeManager = new SceneOctreeManager(this, blockSize)
+
+        // camera, and a node to hold it and accumulate rotations
+        this._cameraHolder = new TransformNode('camHolder', scene)
+        this._camera = new FreeCamera('camera', new Vector3(0, 0, 0), scene)
+        this._camera.parent = this._cameraHolder
+        this._camera.minZ = .01
+
+        // plane obscuring the camera - for overlaying an effect on the whole view
+        this._camScreen = CreatePlane('camScreen', { size: 10 }, scene)
+        this.addMeshToScene(this._camScreen)
+        this._camScreen.position.z = .1
+        this._camScreen.parent = this._camera
+        this._camScreenMat = this.makeStandardMaterial('camscreenmat')
+        this._camScreen.material = this._camScreenMat
+        this._camScreen.setEnabled(false)
+        this._camScreenMat.freeze()
+        this._camLocBlock = 0
+
+        // apply some defaults
+        var lightVec = new Vector3(0.1, 1, 0.3)
+        this._light = new HemisphericLight('light', lightVec, scene)
+
+        function arrToColor(a) { return new Color3(a[0], a[1], a[2]) }
+        scene.clearColor = Color4.FromColor3(arrToColor(opts.clearColor))
+        scene.ambientColor = arrToColor(opts.ambientColor)
+        this._light.diffuse = arrToColor(opts.lightDiffuse)
+        this._light.specular = arrToColor(opts.lightSpecular)
+        this._light.groundColor = arrToColor(opts.groundLightColor)
+
+        // scene options
+        scene.skipPointerMovePicking = true
     }
-    else {
-        self._engine = new NullEngine()
-    }
-
-    self._scene = new Scene(self._engine)
-    // bloxd change end
-    var scene = self._scene
-    // remove built-in listeners
-    scene.detachControl()
-
-    // octree manager class
-    var blockSize = Math.round(opts.octreeBlockSize)
-    self._octreeManager = new SceneOctreeManager(self, blockSize)
-
-    // camera, and a node to hold it and accumulate rotations
-    self._cameraHolder = new TransformNode('camHolder', scene)
-    self._camera = new FreeCamera('camera', new Vector3(0, 0, 0), scene)
-    self._camera.parent = self._cameraHolder
-    self._camera.minZ = .01
-    self._cameraHolder.visibility = false
-
-    // plane obscuring the camera - for overlaying an effect on the whole view
-    self._camScreen = Mesh.CreatePlane('camScreen', 10, scene)
-    self.addMeshToScene(self._camScreen)
-    self._camScreen.position.z = .1
-    self._camScreen.parent = self._camera
-    self._camScreenMat = self.makeStandardMaterial('camscreenmat')
-    self._camScreen.material = self._camScreenMat
-    self._camScreen.setEnabled(false)
-    self._camLocBlock = 0
-
-    // apply some defaults
-    var lightVec = new Vector3(0.1, 1, 0.3)
-    self._light = new HemisphericLight('light', lightVec, scene)
-
-    function arrToColor(a) { return new Color3(a[0], a[1], a[2]) }
-    scene.clearColor = arrToColor(opts.clearColor)
-    scene.ambientColor = arrToColor(opts.ambientColor)
-    self._light.diffuse = arrToColor(opts.lightDiffuse)
-    self._light.specular = arrToColor(opts.lightSpecular)
-    self._light.groundColor = arrToColor(opts.groundLightColor)
-
-    // make a default flat material (used or clone by terrain, etc)
-    self.flatMaterial = self.makeStandardMaterial('flatmat')
-
 }
 
 
@@ -286,6 +288,7 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = nul
     if (isStatic) {
         mesh.freezeWorldMatrix()
         if (mesh.freezeNormals) mesh.freezeNormals()
+        mesh.doNotSyncBoundingInfo = true
     }
 
     // bloxd start
@@ -345,6 +348,15 @@ Rendering.prototype.postMaterialCreationHook = function (mat) {
 
 
 
+/*
+ *
+ *   INTERNALS
+ *
+ */
+
+
+
+
 
 /*
  *
@@ -386,7 +398,7 @@ Rendering.prototype._rebaseOrigin = function (delta) {
             mesh.markAsDirty()
         }
 
-        if (mesh._isWorldMatrixFrozen) {
+        if (mesh.isWorldMatrixFrozen) {
             // paradoxically this unfreezes, then re-freezes the matrix
             mesh.freezeWorldMatrix()
         }
@@ -454,22 +466,25 @@ function checkCameraEffect(self, id) {
 function getHighlightMesh(rendering) {
     var mesh = rendering._highlightMesh
     if (!mesh) {
-        mesh = Mesh.CreatePlane("highlight", 1.0, rendering._scene)
+        mesh = CreatePlane("highlight", { size: 1.0 }, rendering._scene)
         var hlm = rendering.makeStandardMaterial('highlightMat')
         hlm.backFaceCulling = false
         hlm.emissiveColor = new Color3(1, 1, 1)
         hlm.alpha = 0.2
+        hlm.freeze()
         mesh.material = hlm
 
         // outline
         var s = 0.5
-        var lines = Mesh.CreateLines("hightlightLines", [
-            new Vector3(s, s, 0),
-            new Vector3(s, -s, 0),
-            new Vector3(-s, -s, 0),
-            new Vector3(-s, s, 0),
-            new Vector3(s, s, 0)
-        ], rendering._scene)
+        var lines = CreateLines("hightlightLines", {
+            points: [
+                new Vector3(s, s, 0),
+                new Vector3(s, -s, 0),
+                new Vector3(-s, -s, 0),
+                new Vector3(-s, s, 0),
+                new Vector3(s, s, 0)
+            ]
+        }, rendering._scene)
         lines.color = new Color3(1, 1, 1)
         lines.parent = mesh
 
@@ -505,6 +520,7 @@ Rendering.prototype.debug_SceneCheck = function () {
     var mats = this._scene.materials
     var allmats = []
     mats.forEach(mat => {
+        // @ts-ignore
         if (mat.subMaterials) mat.subMaterials.forEach(mat => allmats.push(mat))
         else allmats.push(mat)
     })
@@ -513,11 +529,12 @@ Rendering.prototype.debug_SceneCheck = function () {
         block.entries.forEach(m => octs.push(m))
     })
     meshes.forEach(function (m) {
-        if (m._isDisposed) warn(m, 'disposed mesh in scene')
+        if (m.isDisposed) warn(m, 'disposed mesh in scene')
         if (empty(m)) return
         if (missing(m, dyns, octs)) warn(m, 'non-empty mesh missing from octree')
         if (!m.material) { warn(m, 'non-empty scene mesh with no material'); return }
         numSubs += (m.subMeshes) ? m.subMeshes.length : 1
+        // @ts-ignore
         var mats = m.material.subMaterials || [m.material]
         mats.forEach(function (mat) {
             if (missing(mat, mats)) warn(mat, 'mesh material not in scene')
@@ -528,8 +545,10 @@ Rendering.prototype.debug_SceneCheck = function () {
         var used = false
         meshes.forEach(mesh => {
             if (mesh.material === mat) used = true
-            if (!mesh.material || !mesh.material.subMaterials) return
-            if (mesh.material.subMaterials.includes(mat)) used = true
+            if (!mesh.material) return
+            // @ts-ignore
+            var mats = mesh.material.subMaterials || [mesh.material]
+            if (mats.includes(mat)) used = true
         })
         if (!used) unusedMats.push(mat.name)
     })

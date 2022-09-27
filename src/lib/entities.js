@@ -3,14 +3,13 @@
  * @module noa.entities
  */
 
-
 import ECS from 'ent-comp'
-// import ECS from '../../../ent-comp'
-
 import vec3 from 'gl-vec3'
-const { updatePositionExtents } = require( '../components/position')
+import { updatePositionExtents } from '../components/position'
+import { setPhysicsFromPosition } from '../components/physics'
 
-const setPhysicsFromPosition = require('../components/physics').setPhysicsFromPosition
+
+
 
 
 
@@ -198,7 +197,7 @@ export class Entities extends ECS {
         /**
          * Returns the entity's physics body
          * Note, will throw if the entity doesn't have the position component!
-         * @type {(id:number) => null | import("../components/physics").RigidBody} 
+         * @type {(id:number) => null | import("voxel-physics-engine").RigidBody} 
         */
         this.getPhysicsBody = (id) => {
             var state = this.getPhysics(id)

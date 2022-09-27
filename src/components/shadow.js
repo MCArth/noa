@@ -1,6 +1,5 @@
 import { Color3 } from '@babylonjs/core/Maths/math.color'
-import { Mesh } from '@babylonjs/core/Meshes/mesh'
-import '@babylonjs/core/Meshes/Builders/discBuilder'
+import { CreateDisc } from '@babylonjs/core/Meshes/Builders/discBuilder'
 import '@babylonjs/core/Meshes/instancedMesh'
 
 var vec3 = require('gl-vec3')
@@ -12,7 +11,7 @@ export default function (noa, dist) {
 
     // create a mesh to re-use for shadows
     var scene = noa.rendering.getScene()
-    var disc = Mesh.CreateDisc('shadow', 0.75, 30, scene)
+    var disc = CreateDisc('shadow', { radius: 0.75, tessellation: 30 }, scene)
     disc.rotation.x = Math.PI / 2
     var mat = noa.rendering.makeStandardMaterial('shadowMat')
     mat.diffuseColor = Color3.Black()
@@ -20,6 +19,7 @@ export default function (noa, dist) {
     mat.alpha = 0.5
     disc.material = mat
     disc.setEnabled(false)
+    mat.freeze()
 
     // source mesh needn't be in the scene graph
     scene.removeMesh(disc)

@@ -106,9 +106,9 @@ export class World extends EventEmitter {
         /** @internal */
         this._chunkSize = opts.chunkSize
         /** @internal */
-        this._chunkAddDistance = [1, 1]
+        this._chunkAddDistance = [2, 2]
         /** @internal */
-        this._chunkRemoveDistance = [1, 1]
+        this._chunkRemoveDistance = [3, 3]
         /** @internal */
         this._addDistanceFn = null
         /** @internal */
@@ -290,12 +290,16 @@ World.prototype.isBoxUnobstructed = function (box) {
 
 /** client should call this after creating a chunk's worth of data (as an ndarray)  
  * If userData is passed in it will be attached to the chunk
- * @param id
- * @param array
- * @param userData
+ * @param {string} id - the string specified when the chunk was requested 
+ * @param {*} array - an ndarray of voxel data
+ * @param {*} userData - an arbitrary value for game client use
+ * @param {number} fillVoxelID - specify a voxel ID here if you want to signify that 
+ * the entire chunk should be solidly filled with that voxel (e.g. `0` for air). 
+ * If you do this, the voxel array data will be overwritten and the engine will 
+ * take a fast path through some initialization steps.
  */
-World.prototype.setChunkData = function (id, array, userData) {
-    setChunkData(this, id, array, userData)
+World.prototype.setChunkData = function (id, array, userData = null, fillVoxelID = -1) {
+    setChunkData(this, id, array, userData, fillVoxelID)
 }
 
 
@@ -646,7 +650,7 @@ function findNewChunksInRange(world, ci, cj, ck) {
     }
 
     // queue should be mostly sorted, but may not have been empty
-    sortQueueByDistanceFrom(toRequest, ci, cj, ck, world.chunkSortingDistFn)
+    sortQueueByDistanceFrom(toRequest, ci, cj, ck, world.chunkSortingDistFn, false, true)
 }
 
 // Helpers for checking whether to add a location, and reflections of it
@@ -663,9 +667,14 @@ var checkOneLocation = (world, state, i, j, k) => {
         if (world._chunksToRemove.includes(i, j, k)) state.removals++
     } else {
         world._chunksKnown.add(i, j, k)
-        world._chunksToRequest.addToFront(i, j, k)
+        world._chunksToRequest.add(i, j, k, true)
     }
 }
+
+
+
+
+
 
 
 
@@ -686,7 +695,7 @@ function findDistantChunksToRemove(world, ci, cj, ck) {
         world._chunksToRequest.remove(i, j, k)
         world._chunksToMeshFirst.remove(i, j, k)
     })
-    sortQueueByDistanceFrom(toRemove, ci, cj, ck, world.chunkSortingDistFn)
+    sortQueueByDistanceFrom(toRemove, ci, cj, ck, world.chunkSortingDistFn, false, true)
 }
 
 
@@ -732,10 +741,11 @@ World.prototype.markAllChunksForRemoval = function () {
     // the following code won't actually do anything anymore, leave it in for ease of merging.
     // Bloxd end
     var [i, j, k] = getPlayerChunkIndexes(this)
-    sortQueueByDistanceFrom(this._chunksToRemove, i, j, k, this.chunkSortingDistFn)
+    sortQueueByDistanceFrom(this._chunksToRemove, i, j, k, this.chunkSortingDistFn, false, true)
     this._chunkAddSearchFrom = 0 // bloxd change - add this in so we get it when calling this from resetMap
 }
 // bloxd change end
+
 
 
 // incrementally look for chunks that could be re-meshed
@@ -839,7 +849,7 @@ function requestNewChunk(world, i, j, k) {
 
 // called when client sets a chunk's voxel data
 // If userData is passed in it will be attached to the chunk
-function setChunkData(world, reqID, array, userData) {
+function setChunkData(world, reqID, array, userData, fillVoxelID) {
     var arr = reqID.split('|')
     var i = parseInt(arr.shift())
     var j = parseInt(arr.shift())
@@ -856,13 +866,13 @@ function setChunkData(world, reqID, array, userData) {
     if (!chunk) {
         // if chunk doesn't exist, create and init
         var size = world._chunkSize
-        chunk = new Chunk(world.noa, reqID, i, j, k, size, array, userData)
+        chunk = new Chunk(world.noa, reqID, i, j, k, size, array, userData, fillVoxelID)
         world._storage.storeChunkByIndexes(i, j, k, chunk)
         world.noa.rendering.prepareChunkForRendering(chunk)
         world.emit('chunkAdded', chunk)
     } else {
         // else we're updating data for an existing chunk
-        chunk._updateVoxelArray(array)
+        chunk._updateVoxelArray(array, fillVoxelID)
     }
     // chunk can now be meshed, and ping neighbors
     possiblyQueueChunkForMeshing(world, chunk)
@@ -953,13 +963,10 @@ function chunkCoordsToLocalsPowerOfTwo(x, y, z) {
  * 
 */
 
-
-function sortQueueByDistanceFrom(queue, pi, pj, pk, distFn, reverse = false) {
-    if (reverse) {
-        queue.sortByDistance((i, j, k) => -distFn(pi - i, pj - j, pk - k))
-    } else {
-        queue.sortByDistance((i, j, k) => distFn(pi - i, pj - j, pk - k))
-    }
+// sorts DESCENDING, unless reversed
+function sortQueueByDistanceFrom(queue, pi, pj, pk, distFn, reverse = false, partialOK = false) {
+    var localDist = (i, j, k) => distFn(pi - i, pj - j, pk - k)
+    queue.sortByDistance(localDist, reverse, partialOK)
 }
 var defaultSortDistance = (i, j, k) => (i * i) + (j * j) + (k * k)
 

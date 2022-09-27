@@ -71,6 +71,9 @@ export class Camera {
         /** Mouse look inverse (vertical) */
         this.inverseY = !!opts.inverseY
 
+        /** For temporarily disabling mouse-look inputs */
+        this.inputsDisabled = false
+
         /** 
          * Camera yaw angle. 
          * Returns the camera's rotation angle around the vertical axis. 
@@ -127,6 +130,8 @@ export class Camera {
         /** Current actual zoom distance. This differs from `zoomDistance` when
          * the camera is in the process of moving towards the desired distance, 
          * or when it's obstructed by solid terrain behind the player.
+         * This value will get overwritten each tick, but you may want to write to it
+         * when overriding the camera zoom speed.
         */
         this.currentZoom = opts.initialZoom
 
@@ -271,6 +276,7 @@ export class Camera {
         var dx = state.dx * this.sensitivityX * conv
         if (this.inverseY) dy = -dy
         if (this.inverseX) dx = -dx
+        if (this.inputsDisabled) dx = dy = 0
 
         dy -= this._kickbackDiffToApply
         this._kickbackDiffToApply = 0

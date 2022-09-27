@@ -3,8 +3,9 @@
  * @module noa.container
  */
 
-var EventEmitter = require('events').EventEmitter
-const MicroGameShell = require('micro-game-shell').MicroGameShell
+import { EventEmitter } from 'events'
+import { MicroGameShell } from 'micro-game-shell'
+
 
 
 
@@ -34,10 +35,16 @@ export class Container extends EventEmitter {
         this.noa = noa
 
         /** The game's DOM element container */
-        this.element = opts.domElement || createContainerDiv()
+        var domEl = opts.domElement || null
+        if (typeof domEl === 'string') {
+            domEl = document.querySelector(domEl)
+        }
+        this.element = domEl || createContainerDiv()
 
         /** The `canvas` element that the game will draw into */
         this.canvas = getOrCreateCanvas(this.element)
+        doCanvasBugfix(this.canvas) // grumble...
+
 
         /** Whether the browser supports pointerLock. @readonly */
         this.supportsPointerLock = false
@@ -187,4 +194,21 @@ function detectPointerLock(self) {
         }
         document.addEventListener('touchmove', listener)
     }
+}
+
+
+/**
+ * This works around a weird bug that seems to be chrome/mac only?
+ * Without this, the page sometimes initializes with the canva
+ * zoomed into its lower left quadrant. 
+ * Resizing the canvas fixes the issue (also: resizing page, changing zoom...)
+ */
+function doCanvasBugfix(canvas) {
+    var ct = 5
+    var id = setInterval(() => {
+        var w = canvas.width
+        canvas.width = w + 1
+        canvas.width = w
+        if (ct-- < 0) clearInterval(id)
+    }, 100)
 }

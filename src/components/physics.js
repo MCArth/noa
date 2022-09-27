@@ -29,12 +29,11 @@ export class PhysicsState {
 }
 
 
+
 /**
  * Physics component, stores an entity's physics engbody.
  * @param {import('..').Engine} noa
 */
-
-
 export default function (noa) {
     return {
 

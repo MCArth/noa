@@ -7,9 +7,11 @@
  * @license  MIT
  */
 
+import './lib/shims'
+
+import { EventEmitter } from 'events'
 import vec3 from 'gl-vec3'
 import ndarray from 'ndarray'
-import { EventEmitter } from 'events'
 import raycast from 'fast-voxel-raycast'
 
 import { Container } from './lib/container'
@@ -23,6 +25,7 @@ import { Entities } from './lib/entities'
 import ObjectMesher from './lib/objectMesher'
 import TerrainMesher from './lib/terrainMesher'
 import { locationHasher } from './lib/util'
+import { makeProfileHook } from './lib/util'
 
 
 import packageJSON from '../package.json'
@@ -38,6 +41,7 @@ var PROFILE_RENDER = 0
 var defaultOptions = {
     debug: false,
     silent: false,
+    silentBabylon: false,
     playerHeight: 1.8,
     playerWidth: 0.6,
     playerStart: [0, 10, 0],
@@ -143,7 +147,8 @@ export class Engine extends EventEmitter {
         this.container = new Container(this, opts)
 
         // bloxd start - comment define properties that are entering noa into slow dictionary mode
-        /** The game's tick rate (ticks per second) 
+        /** The game's tick rate (number of ticks per second) 
+         * @type {number}
          * @readonly 
         */
         this.tickRate = this.container._shell.tickRate
@@ -151,7 +156,9 @@ export class Engine extends EventEmitter {
             // get: () => this.container._shell.tickRate
         // })
 
-        /** The game's max framerate (use `0` for uncapped) */
+        /** The game's max framerate (use `0` for uncapped)
+         * @type {number}
+         */
         this.maxRenderRate = this.container._shell.maxRenderRate
         // Object.defineProperty(this, 'maxRenderRate', {
             // get: () => this.container._shell.maxRenderRate,
@@ -170,8 +177,13 @@ export class Engine extends EventEmitter {
         /** Manages the world, chunks, and all voxel data */
         this.world = new World(this, opts)
 
+        var _consoleLog = console.log
+        if (opts.silentBabylon) console.log = () => { }
+
         /** Rendering manager */
         this.rendering = new Rendering(this, opts, this.container.canvas)
+
+        if (opts.silentBabylon) console.log = _consoleLog
 
         /** Physics engine - solves collisions, properties, etc. */
         this.physics = new Physics(this, opts)
@@ -208,7 +220,9 @@ export class Engine extends EventEmitter {
         /** Manages the game's camera, view angle, sensitivity, etc. */
         this.camera = new Camera(this, opts)
 
-        /** How far to check for a solid voxel the player is currently looking at */
+        /** How far to check for a solid voxel the player is currently looking at 
+         * @type {number}
+        */
         this.blockTestDistance = opts.blockTestDistance
 
         /** 
@@ -305,11 +319,6 @@ export class Engine extends EventEmitter {
         /** @internal */
         this._prevTargetHash = 0
 
-        /** @internal */
-        this.makeTargetHash = (pos, norm, id) => {
-            var N = locationHasher(pos[0] + id, pos[1], pos[2])
-            return N ^ locationHasher(norm[0], norm[1] + id, norm[2])
-        }
 
         /** @internal */
         this._pickPos = vec3.create()
@@ -322,7 +331,7 @@ export class Engine extends EventEmitter {
         }
 
         // temp hacks for development
-        if (opts.debug) {            
+        if (opts.debug) {
             // expose often-used classes
             /** @internal */
             this.vec3 = vec3
@@ -671,7 +680,12 @@ export class Engine extends EventEmitter {
             var dat = this._targetedBlockDat
             pickResultIntoBlockInfo(this, result, dat)
             this.targetedBlock = dat
-            newhash = this.makeTargetHash(dat.position, dat.normal, dat.blockID)
+
+            // arbitrary hash so we know when the targeted blockID/pos/face changes
+            var pos = dat.position, norm = dat.normal
+            var x = locationHasher(pos[0] + dat.blockID, pos[1], pos[2])
+            x ^= locationHasher(norm[0], norm[1] + dat.blockID, norm[2])
+            newhash = x
         } else {
             this.targetedBlock = null
         }
@@ -775,9 +789,6 @@ function deprecateStuff(noa) {
 
 
 
-
-
-var makeProfileHook = require('./lib/util').makeProfileHook
 var profile_hook = (PROFILE > 0) ?
     makeProfileHook(PROFILE, 'tick   ') : () => { }
 var profile_hook_render = (PROFILE_RENDER > 0) ?

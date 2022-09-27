@@ -96,44 +96,81 @@ export class World extends EventEmitter {
     /** @internal */
     _coordsToChunkIndexes: typeof chunkCoordsToIndexesGeneral;
     /** @internal */
-    _coordsToChunkLocals: typeof chunkCoordsToLocalsGeneral;
+    _coordsToChunkLocals: typeof chunkCoordsToLocalsPowerOfTwo;
     /** @internal */
     _coordShiftBits: number;
     /** @internal */
     _coordMask: number;
-    canChangeBlockCoord: Set<any>;
-    canChangeBlockType: Set<any>;
-    canChangeBlockRect: any[];
-    cantChangeBlockCoord: Set<any>;
-    cantChangeBlockType: Set<any>;
-    cantChangeBlockRect: any[];
-    walkThroughType: Set<any>;
-    walkThroughRect: any[];
-    meshingTick: number;
+    /** @param x,y,z */
     getBlockID(x: any, y: any, z: any): any;
+    /** @param x,y,z */
     getBlockSolidity(x: any, y: any, z: any): boolean;
+    /** @param x,y,z */
     getBlockOpacity(x: any, y: any, z: any): any;
+    /** @param x,y,z */
     getBlockFluidity(x: any, y: any, z: any): any;
+    /** @param x,y,z */
     getBlockProperties(x: any, y: any, z: any): any;
+    /** @param val,x,y,z */
     setBlockID(val: any, x: any, y: any, z: any): any;
-    hasChunkWithBlockCoordinates(x: any, y: any, z: any): boolean;
+    /** @param box */
     isBoxUnobstructed(box: any): boolean;
-    setChunkData(id: any, array: any, userData: any): void;
+    /** client should call this after creating a chunk's worth of data (as an ndarray)
+     * If userData is passed in it will be attached to the chunk
+     * @param {string} id - the string specified when the chunk was requested
+     * @param {*} array - an ndarray of voxel data
+     * @param {*} userData - an arbitrary value for game client use
+     * @param {number} fillVoxelID - specify a voxel ID here if you want to signify that
+     * the entire chunk should be solidly filled with that voxel (e.g. `0` for air).
+     * If you do this, the voxel array data will be overwritten and the engine will
+     * take a fast path through some initialization steps.
+     */
+    setChunkData(id: string, array: any, userData?: any, fillVoxelID?: number): void;
+    /**
+     * Sets the distances within which to load new chunks, and beyond which
+     * to unload them. Generally you want the remove distance to be somewhat
+     * farther, so that moving back and forth across the same chunk border doesn't
+     * keep loading/unloading the same distant chunks.
+     *
+     * Both arguments can be numbers (number of voxels), or arrays like:
+     * `[horiz, vert]` specifying different horizontal and vertical distances.
+     * @param {number | number[]} addDist
+     * @param {number | number[]} remDist
+     */
     setAddRemoveDistance(addDist?: number | number[], remDist?: number | number[]): void;
+    /** Tells noa to discard voxel data within a given `AABB` (e.g. because
+     * the game client received updated data from a server).
+     * The engine will mark all affected chunks for disposal, and will later emit
+     * new `worldDataNeeded` events (if the chunk is still in draw range).
+     * Note that chunks invalidated this way will not emit a `chunkBeingRemoved` event
+     * for the client to save data from.
+     */
     invalidateVoxelsInAABB(box: any): void;
+    /** When manually controlling chunk loading, tells the engine that the
+     * chunk containing the specified (x,y,z) needs to be created and loaded.
+     * > Note: has no effect when `noa.world.manuallyControlChunkLoading` is not set.
+     * @param x, y, z
+     */
     manuallyLoadChunk(x: any, y: any, z: any): void;
+    /** When manually controlling chunk loading, tells the engine that the
+     * chunk containing the specified (x,y,z) needs to be unloaded and disposed.
+     * > Note: has no effect when `noa.world.manuallyControlChunkLoading` is not set.
+     * @param x, y, z
+     */
     manuallyUnloadChunk(x: any, y: any, z: any): void;
-    canChangeBlock(pos: any): any;
+    /** @internal */
     tick(): void;
+    /** @internal */
     render(): void;
+    /** @internal */
     _getChunkByCoords(x: any, y: any, z: any): any;
     _queueChunkForRemesh(chunk: any): void;
-    markAllChunksForRemoval(): void;
+    /** @internal */
     report(): void;
 }
 import EventEmitter from "events";
 import Chunk from "./chunk";
 import { ChunkStorage } from "./util";
 declare function chunkCoordsToIndexesGeneral(x: any, y: any, z: any): number[];
-declare function chunkCoordsToLocalsGeneral(x: any, y: any, z: any): number[];
+declare function chunkCoordsToLocalsPowerOfTwo(x: any, y: any, z: any): number[];
 export {};

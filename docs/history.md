@@ -3,6 +3,8 @@
 
 This is a summary of new features and breaking changes in recent `noa` versions.
 
+ * [0.33.0](#0330)
+ * [0.32.0](#0320)
  * [0.31.0](#0310)
  * [0.30.0](#0300)
  * [0.29.0](#0290)
@@ -20,17 +22,35 @@ This is a summary of new features and breaking changes in recent `noa` versions.
 
 ----
 
+### 0.33.0
+
+   * Signature of `noa.registry.registerMaterial` changed to take an options object
+   * Terrain now supports texture atlases! Merge your textures into a vertical strip atlas, then call `noa.registry.registerMaterial` with that texture and specify an `atlasIndex` options property.
+   * When passing world data to `setChunkData`, client may now pass in a `fillVoxelID` to signify that entire chunk should be filled with that voxel (e.g. `0` for air)
+   * Babylon version updated
+   * Added `noa.camera.inputsDisabled` for temporarily disabling camera controls
+   * Modernization updates to `noa.inputs`. Breaking changes:
+     * Key bindings should now use [KeyboardEvent.code](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code) strings, like `KeyA`, `Shift`, etc.
+     * Mouse button bindings should use `Mouse1`, `Mouse2`..
+     * Mouse move/scroll values (`dx,dy,scrollx,scrolly`) are moved from 
+     `noa.inputs.state` to `noa.inputs.pointerState`
+
+### 0.32.0 
+   * Fixes npm versioning issue - no code changes.
+
 ### 0.31.0
 
    * Change the speed of the world with `noa.timeScale`
    * Now possible to control chunk processing order: `noa.world.chunkSortingDistFn`
    * Chunk processing will happen more reliably, particularly after switching worlds.
    * Changed how the docs work, and how code comments are arranged for this purpose. See [API docs](https://fenomas.github.io/noa/API/).
+   * Moves to Babylonjs version 5 (alpha).
+   * Adds more exported types and code hints.
 
 
 ### 0.30.0
 
-   * Engine now a named class, use `import {Engine} from 'noa-engine'`
+   * Engine now a named export, use `import {Engine} from 'noa-engine'`
    * many performance and size optimizations
    * now generates proper type declarations and API references!
    * Adds separate horizontal/vertical add/remove chunk distances in `world`

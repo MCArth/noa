@@ -1,9 +1,11 @@
 export function createVoxelArray(size: any): any;
 export default Chunk;
-declare function Chunk(noa: any, requestID: any, ci: any, cj: any, ck: any, size: any, dataArray: any, userData: any): void;
+/** @param {import('../index').Engine} noa */
+declare function Chunk(noa: import('../index').Engine, requestID: any, ci: any, cj: any, ck: any, size: any, dataArray: any, fillVoxelID?: number): void;
 declare class Chunk {
-    constructor(noa: any, requestID: any, ci: any, cj: any, ck: any, size: any, dataArray: any, userData: any);
-    noa: any;
+    /** @param {import('../index').Engine} noa */
+    constructor(noa: import('../index').Engine, requestID: any, ci: any, cj: any, ck: any, size: any, dataArray: any, fillVoxelID?: number);
+    noa: import("../index").Engine;
     isDisposed: boolean;
     requestID: any;
     voxels: any;
@@ -21,15 +23,19 @@ declare class Chunk {
     _terrainMeshes: any[];
     _isFull: boolean;
     _isEmpty: boolean;
+    _wholeLayerVoxel: any[];
     _neighbors: any;
     _neighborCount: number;
     _timesMeshed: number;
     _blockHandlerLocs: LocationQueue;
-    _updateVoxelArray(dataArray: any): void;
+    _updateVoxelArray(dataArray: any, fillVoxelID?: number): void;
     get(i: any, j: any, k: any): any;
-    getSolidityAt(i: any, j: any, k: any): any;
+    getSolidityAt(i: any, j: any, k: any): boolean;
     set(i: any, j: any, k: any, newID: any): void;
     updateMeshes(): void;
     dispose(): void;
+}
+declare namespace Chunk {
+    function _createVoxelArray(size: any): any;
 }
 import { LocationQueue } from "./util";
