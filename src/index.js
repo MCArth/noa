@@ -203,7 +203,7 @@ export class Engine extends EventEmitter {
         // bloxd change - don't add movement components to player
 
         // add a component to make player mesh fade out when zooming in
-        ents.addComponent(this.playerEntity, ents.names.fadeOnZoom)
+        // ents.addComponent(this.playerEntity, ents.names.fadeOnZoom) // bloxd change comment unneeded
 
         /** Manages the game's camera, view angle, sensitivity, etc. */
         this.camera = new Camera(this, opts)
