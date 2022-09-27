@@ -724,17 +724,20 @@ function MeshBuilder(noa, terrainMatManager) {
 
     function addUVs(uvArr, faceNum, d, w, h, dir) {
         var offset = faceNum * 8
-        var epsilon = 0
+        var epsilon = 0.0015
         for (var i = 0; i < 8; i++) uvArr[offset + i] = epsilon
         if (d === 0) {
             uvArr[offset + 1] = uvArr[offset + 3] = h - epsilon
-            uvArr[offset + 2] = uvArr[offset + 4] = dir * w
+            uvArr[offset + 2] = uvArr[offset + 4] = dir * (w-epsilon)
+            uvArr[offset + 0] = uvArr[offset + 6] = dir*epsilon
         } else if (d === 1) {
             uvArr[offset + 1] = uvArr[offset + 7] = w - epsilon
-            uvArr[offset + 4] = uvArr[offset + 6] = dir * h
+            uvArr[offset + 4] = uvArr[offset + 6] = dir * (h-epsilon)
+            uvArr[offset + 0] = uvArr[offset + 2] = dir*epsilon
         } else {
             uvArr[offset + 1] = uvArr[offset + 3] = h - epsilon
-            uvArr[offset + 2] = uvArr[offset + 4] = -dir * w
+            uvArr[offset + 2] = uvArr[offset + 4] = -dir * (w-epsilon)
+            uvArr[offset + 0] = uvArr[offset + 6] = -dir*epsilon
         }
     }
 
