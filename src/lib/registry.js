@@ -116,10 +116,6 @@ export class Registry {
             blockOpacity[id] = !!opts.opaque
             blockIsFluid[id] = !!opts.fluid
 
-            if (!blockOpacity[id]) {
-                console.log("Block", id)
-            }
-
             // store any custom mesh
             blockIsObject[id] = !!opts.blockMesh
             blockMeshes[id] = opts.blockMesh || null
@@ -189,10 +185,6 @@ export class Registry {
             var opts = Object.assign(new MaterialOptions(), options || {})
             var matID = matIDs[name] || matDefs.length
             matIDs[name] = matID
-
-            if (opts.texHasAlpha) {
-                console.log("Tex", name)
-            }
 
             var texURL = opts.textureURL ? this._texturePath + opts.textureURL : ''
             var alpha = 1.0
