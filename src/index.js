@@ -317,7 +317,7 @@ export class Engine extends EventEmitter {
         }
 
         /** @internal */
-        this._prevTargetHash = 0
+        this._prevTargetHash = '' // bloxd change - fix target hash collisions
 
 
         /** @internal */
@@ -669,7 +669,7 @@ export class Engine extends EventEmitter {
     // Each frame, by default pick along the player's view vector 
     // and tell rendering to highlight the struck block face
     updateBlockTargets(forceHighlightUpdate=false) {
-        var newhash = 0
+        var newhash = ''
         var blockIdFn = this.blockTargetIdCheck || this.registry.getBlockSolidity
 
         let origin = this.actionOrigin // if undefined, _localPick will default to camera pos
@@ -683,9 +683,12 @@ export class Engine extends EventEmitter {
 
             // arbitrary hash so we know when the targeted blockID/pos/face changes
             var pos = dat.position, norm = dat.normal
-            var x = locationHasher(pos[0] + dat.blockID, pos[1], pos[2])
-            x ^= locationHasher(norm[0], norm[1] + dat.blockID, norm[2])
-            newhash = x
+            // bloxd fix hash collision
+            // var x = locationHasher(pos[0] + dat.blockID, pos[1], pos[2])
+            // x ^= locationHasher(norm[0], norm[1] + dat.blockID, norm[2])
+            // newhash = x
+            newhash = `${pos[0]}|${pos[1]}|${pos[2]}|${dat.blockID}` // don't care about normal
+            // bloxd end
         } else {
             this.targetedBlock = null
         }
