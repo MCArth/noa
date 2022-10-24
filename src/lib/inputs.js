@@ -4,8 +4,8 @@
  */
 
 
-import makeInputs from 'game-inputs'
-
+// import { GameInputs } from '../../../game-inputs'
+import { GameInputs } from 'game-inputs'
 
 
 var defaultOptions = {
@@ -15,32 +15,16 @@ var defaultOptions = {
 }
 
 const defaultBindings = {
-    "forward": ["W", "<up>"],
-    "left": ["A", "<left>"],
-    "backward": ["S", "<down>"],
-    "right": ["D", "<right>"],
-    "fire": "<mouse 1>",
-    "mid-fire": ["<mouse 2>", "Q"],
-    "alt-fire": ["<mouse 3>", "E"],
-    "jump": "<space>",
-    "sprint": "<shift>",
-    "crouch": ["<control>", "C", "<caps-lock>", "Z", "\\"],
-}
-
-/**
- * @internal
- * @returns {Inputs}
- */
-export function createInputs(noa, opts, element) {
-    opts = Object.assign({}, defaultOptions, opts)
-    var inputs = makeInputs(element, opts)
-    var b = opts.bindings || defaultBindings
-    for (var name in b) {
-        var arr = (Array.isArray(b[name])) ? b[name] : [b[name]]
-        arr.unshift(name)
-        inputs.bind.apply(inputs, arr)
-    }
-    return inputs
+    "forward": ["KeyW", "ArrowUp"],
+    "backward": ["KeyS", "ArrowDown"],
+    "left": ["KeyA", "ArrowLeft"],
+    "right": ["KeyD", "ArrowRight"],
+    "fire": "Mouse1",
+    "mid-fire": ["Mouse2", "KeyQ"],
+    "alt-fire": ["Mouse3", "KeyE"],
+    "jump": "Space",
+    "sprint": "ShiftLeft",
+    "crouch": ["ControlLeft", "KeyC", "CapsLock", "KeyZ", "Backslash", "IntlBackslash"],
 }
 
 
@@ -50,35 +34,28 @@ export function createInputs(noa, opts, element) {
 
 
 /**
- * `noa.inputs` - manages keybinds and mouse input.
- *
- * Extends [game-inputs](https://github.com/fenomas/game-inputs),
- * see there for implementation and docs.
- *
- * By default, the following bindings will be made automatically.
- * You can undo bindings with `unbind`, or specify your own with a
- * `bindings` property on the options object passed to the [[Engine]].
- *
- * ```js
- * var defaultBindings = {
- *     "forward": ["W", "<up>"],
- *     "left": ["A", "<left>"],
- *     "backward": ["S", "<down>"],
- *     "right": ["D", "<right>"],
- *     "fire": "<mouse 1>",
- *     "mid-fire": ["<mouse 2>", "Q"],
- *     "alt-fire": ["<mouse 3>", "E"],
- *     "jump": "<space>",
- *     "sprint": "<shift>",
- *     "crouch": ["Z", "<caps-lock>", "\\", "C"],
- * }
- * ```
+ * `noa.inputs` - Handles key and mouse input bindings.
  * 
- *  @typedef {Object} Inputs
- * @prop {boolean} disabled
- * @prop {Object} state Maps key binding names to input states.
- * @prop {(binding:string, ...keyCodes:string[]) => void} bind Binds one or more keycodes to a binding.
- * @prop {(binding:string) => void} unbind Unbinds all keyCodes from a binding.
- * @prop {import('events').EventEmitter} down Emits input start events (i.e. keyDown).
- * @prop {import('events').EventEmitter} up Emits input end events (i.e. keyUp).
+ * This module extends 
+ * [game-inputs](https://github.com/fenomas/game-inputs),
+ * so turn on "Inherited" to see its APIs here, or view the base module 
+ * for full docs.
+ * 
+ * This module uses the following default options (from the options
+ * object passed to the [[Engine]]):
  */
+
+ export class Inputs extends GameInputs {
+
+    /** @internal */
+    constructor(noa, opts, element) {
+        opts = Object.assign({}, defaultOptions, opts)
+        super(element, opts)
+
+        var b = opts.bindings || defaultBindings
+        for (var name in b) {
+            var keys = Array.isArray(b[name]) ? b[name] : [b[name]]
+            this.bind(name, ...keys)
+        }
+    }
+}

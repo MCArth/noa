@@ -17,7 +17,7 @@ import raycast from 'fast-voxel-raycast'
 import { Container } from './lib/container'
 import { Rendering } from './lib/rendering'
 import { World } from './lib/world'
-import { createInputs } from './lib/inputs'
+import { Inputs } from './lib/inputs'
 import { Physics } from './lib/physics'
 import { Camera } from './lib/camera'
 import { Registry } from './lib/registry'
@@ -169,7 +169,7 @@ export class Engine extends EventEmitter {
 
 
         /** Inputs manager - abstracts key/mouse input */
-        this.inputs = createInputs(this, opts, this.container.element)
+        this.inputs = new Inputs(this, opts, this.container.element)
 
         /** A registry where voxel/material properties are managed */
         this.registry = new Registry(this, opts)
@@ -393,8 +393,8 @@ export class Engine extends EventEmitter {
             profile_hook('tick event')
             profile_hook('end')
             // clear accumulated scroll inputs (mouseMove is cleared on render)
-            var st = this.inputs.state
-            st.scrollx = st.scrolly = st.scrollz = 0
+            var pst = this.inputs.pointerState
+            pst.scrollx = pst.scrolly = pst.scrollz = 0
         }
         catch(e) {
             this.logErrorMessage("Error in noa tickloop", e)
@@ -464,7 +464,7 @@ export class Engine extends EventEmitter {
             profile_hook_render('end')
 
             // clear accumulated mouseMove inputs (scroll inputs cleared on render)
-            this.inputs.state.dx = this.inputs.state.dy = 0
+            this.inputs.pointerState.dx = this.inputs.pointerState.dy = 0
         }
         catch(e) {
             this.logErrorMessage("Error in noa renderloop", e)
@@ -477,7 +477,7 @@ export class Engine extends EventEmitter {
         this._paused = !!paused
         // when unpausing, clear any built-up mouse inputs
         if (!paused) {
-            this.inputs.state.dx = this.inputs.state.dy = 0
+            this.inputs.pointerState.dx = this.inputs.pointerState.dy = 0
         }
     }
 

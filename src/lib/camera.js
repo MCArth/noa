@@ -265,7 +265,7 @@ export class Camera {
 
     applyInputsToCamera() {
         // dx/dy from input state
-        var state = this.noa.inputs.state
+        var state = this.noa.inputs.pointerState
         // console.debug(state.dx, state.dy)
         // bugFix(state) // TODO: REMOVE EVENTUALLY
         bugFix2(state)
