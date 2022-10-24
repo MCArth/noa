@@ -4,8 +4,8 @@
  */
 
 
-// import { GameInputs } from '../../../game-inputs'
-import { GameInputs } from 'game-inputs'
+import { GameInputs } from '../../../game-inputs'
+// import { GameInputs } from 'game-inputs'
 
 
 var defaultOptions = {
@@ -23,8 +23,8 @@ const defaultBindings = {
     "mid-fire": ["Mouse2", "KeyQ"],
     "alt-fire": ["Mouse3", "KeyE"],
     "jump": "Space",
-    "sprint": "ShiftLeft",
-    "crouch": ["ControlLeft", "KeyC", "CapsLock", "KeyZ", "Backslash", "IntlBackslash"],
+    "sprint": ["ShiftLeft", "ShiftRight"],
+    "crouch": ["ControlLeft", "KeyC", "CapsLock", "KeyZ", "Backslash", "IntlBackslash", "ControlRight"],
 }
 
 
