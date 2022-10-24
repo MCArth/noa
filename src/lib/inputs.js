@@ -4,8 +4,8 @@
  */
 
 
-import { GameInputs } from '../../../game-inputs'
-// import { GameInputs } from 'game-inputs'
+// import { GameInputs } from '../../../game-inputs'
+import { GameInputs } from 'game-inputs'
 
 
 var defaultOptions = {
