@@ -20,7 +20,7 @@ const defaultBindings = {
     "left": ["KeyA", "ArrowLeft"],
     "right": ["KeyD", "ArrowRight"],
     "fire": "Mouse1",
-    "mid-fire": ["Mouse2", "KeyQ"],
+    "mid-fire": ["Mouse2"],
     "alt-fire": ["Mouse3", "KeyE"],
     "jump": "Space",
     "sprint": ["ShiftLeft", "ShiftRight"],
