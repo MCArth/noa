@@ -24,7 +24,6 @@ const collideTerrain = require('../components/collideTerrain')
 const components = {
     'physics': {fn: physics, server: true},
     'position': {fn: position, server: true},
-    'receivesInputs': {},
     'shadow': {},
     'smoothCamera': {},
     'collideEntities': {},
@@ -90,18 +89,30 @@ export class Entities extends ECS {
         var componentArgs = {
             'shadow': this.opts.shadowDistance,
         }
-        // @ts-ignore
-        const reqContext = require.context('../components/', false, /\.js$/)
-        reqContext.keys().forEach(name => {
-            // convert name ('./foo.js') to bare name ('foo')
-            var bareName = /\.\/(.*)\.js/.exec(name)[1]
-            var arg = componentArgs[bareName] || undefined
-            var compFn = reqContext(name)
-            if (compFn.default) compFn = compFn.default
-            var compDef = compFn(this.noa, arg)
-            var comp = this.createComponent(compDef)
-            this.names[bareName] = comp
-        })
+
+        const clientComps = {
+            ...components,
+            'shadow': {fn: require('../components/shadow'), server: false},
+            'smoothCamera': {fn: require('../components/smoothCamera'), server: false},
+            'collideEntities': {fn: require('../components/collideEntities'), server: false},
+            'fadeOnZoom': {fn: require('../components/fadeOnZoom'), server: false},
+            'followsEntity': {fn: require('../components/followsEntity'), server: false},
+            'mesh': {fn: require('../components/mesh'), server: false},
+        }
+
+
+        for (const comp in clientComps) {
+            if (clientComps[comp].fn) {
+                if (clientComps[comp].fn.default) {
+                    clientComps[comp].fn = clientComps[comp].fn.default
+                }
+                this.createComponent(clientComps[comp].fn(this.noa, componentArgs[comp]))
+            }
+            else {
+                this.createComponent({name: comp}) // polyfill
+            }
+            this.names[comp] = comp
+        }
     }
 
     /**
