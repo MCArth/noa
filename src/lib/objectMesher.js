@@ -5,6 +5,7 @@
 
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode'
 import '@babylonjs/core/Meshes/thinInstanceMesh'
+import { makeProfileHook } from './util'
 
 export default ObjectMesher
 
@@ -343,6 +344,5 @@ function copyMatrixData(src, srcOff, dest, destOff) {
 
 
 
-import { makeProfileHook } from './util'
 var profile_hook = (PROFILE) ?
     makeProfileHook(PROFILE, 'Object meshing') : () => { }

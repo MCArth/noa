@@ -25,6 +25,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode'
 import { CreateLines } from '@babylonjs/core/Meshes/Builders/linesBuilder'
 import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder'
+import { makeProfileHook } from './util'
 
 
 
@@ -601,7 +602,6 @@ Rendering.prototype.debug_MeshCount = function () {
 
 
 
-import { makeProfileHook } from './util'
 var profile_hook = (PROFILE) ?
     makeProfileHook(200, 'render internals') : () => { }
 

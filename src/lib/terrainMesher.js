@@ -7,6 +7,7 @@ import ndarray from 'ndarray'
 import { Mesh } from '@babylonjs/core/Meshes/mesh'
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData'
 import { TerrainMatManager } from './terrainMaterials'
+import { makeProfileHook } from './util'
 
 
 
@@ -958,7 +959,6 @@ function unpackAOMask(aomask) {
 
 
 
-import { makeProfileHook } from './util'
 var profile_hook = (PROFILE_EVERY) ?
     makeProfileHook(PROFILE_EVERY, 'Meshing') : () => { }
 

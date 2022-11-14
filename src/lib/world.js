@@ -7,6 +7,7 @@
 import EventEmitter from 'events'
 import Chunk, { createVoxelArray } from './chunk'
 import { LocationQueue, ChunkStorage, locationHasher, loopForTime } from './util'
+import { makeProfileHook } from './util'
 
 var PROFILE_EVERY = 0               // ticks
 var PROFILE_QUEUES_EVERY = 0        // ticks
@@ -1089,7 +1090,6 @@ function _report(world, name, arr, ext) {
 }
 
 
-import { makeProfileHook } from './util'
 var profile_hook = makeProfileHook(PROFILE_EVERY, 'world ticks:', 1)
 var profile_queues_hook = ((every) => {
     if (!(every > 0)) return () => { }
