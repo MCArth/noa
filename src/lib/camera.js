@@ -414,12 +414,10 @@ export function findVectorToPointOnUnitSphere(theta, phi) {
     return [x, y, -z]
 }
 
-export function vectorToUnitSphereAngles(x, y, z) {
-    if (x.length) {
-        y = x[1]
-        z = x[2]
-        x = x[0]
-    }
+export function vectorToUnitSphereAngles(vec) {
+    const x = vec[0]
+    const y = vec[1]
+    const z = vec[2]
 
     const theta = -Math.atan2(x, -z)
 
