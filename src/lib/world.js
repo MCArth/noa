@@ -397,16 +397,18 @@ export function posSatisfiesModifyConstraints(pos, idAtPos, coordSet, oppCoordSe
     if (oppCoordSet.has(posId)) {
         return !defaultReturn
     }
+
+    for (const rect of rectList) {
+        if (posWithinRect(pos, rect)) {
+            return defaultReturn
+        }
+    }
+
     if (typeSet.has(idAtPos)) {
         return defaultReturn
     }
     if (oppTypeSet.has(idAtPos)) {
         return !defaultReturn
-    }
-    for (const rect of rectList) {
-        if (posWithinRect(pos, rect)) {
-            return defaultReturn
-        }
     }
 
     return !defaultReturn
