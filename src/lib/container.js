@@ -153,7 +153,7 @@ function createContainerDiv() {
     container.style.height = "100%"
     container.style.overflow = "hidden"
     document.body.appendChild(container)
-    // document.body.style.overflow = "hidden" //Prevent bounce // bloxd change - comment document body overflow hidden
+    // document.body.style.overflow = "hidden" //Prevent bounce // bloxd change - comment document body overflow hidden (prevents scroll required to hide address bar on ios safari)
     document.body.style.height = "100%"
     container.id = 'noa-container'
     return container
