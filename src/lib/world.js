@@ -93,7 +93,7 @@ export class World extends EventEmitter {
         /** Cutoff (in ms) of time spent each **tick** 
          * @type {number}
         */
-        this.maxProcessingPerTick = 9
+        this.maxProcessingPerTick = 5
 
         /** Cutoff (in ms) of time spent each **render** 
          * @type {number}
@@ -485,48 +485,52 @@ World.prototype.tick = function () {
         profile_hook('addQueue')
     }
 
-    var doMeshing = this.meshingTick === 3
+    var doWork = this.meshingTick === 3
     // var doMeshing = this.meshingTick === 1
 
-    // process (create or mesh) some chunks, up to max iteration time
-    var ptime = Math.max(1, this.maxProcessingPerTick || 0)
-    var done1 = false
-    var done2 = false
-    var done3 = false
-    loopForTime(ptime, () => {
-        if (!done1) done1 = processRequestQueue(this); profile_hook('requests')
-        // bloxd start - Only attempt to mesh things every third tick. 
-        // Do this so if we're playing catch up in micro-game-shell, we don't mesh multiple ticks in a row without leaving space for a render.
-        if (doMeshing && !done2) {
-            done2 = processMeshingQueue(this, false); profile_hook('meshes')
-            this.meshingTick = 0
-        }
-        else {
-            done2 = true
-        }
-        // bloxd end
+    if (doWork) {
+        // process (create or mesh) some chunks, up to max iteration time
+        var ptime = Math.max(1, this.maxProcessingPerTick || 0)
+        var requestsFinished = false
+        var meshingFinished = false
+        var removeFinished = false
+        loopForTime(ptime, () => {
+            if (!requestsFinished) {
+                requestsFinished = processRequestQueue(this); 
+                // profile_hook('requests')
+            }
+            // bloxd start - Only attempt to mesh things every third tick. 
+            // Do this so if we're playing catch up in micro-game-shell, we don't mesh multiple ticks in a row without leaving space for a render.
+            if (!meshingFinished) {
+                meshingFinished = processMeshingQueue(this, false); 
+                // profile_hook('meshes')
+                this.meshingTick = 0
+            }
+            else {
+                meshingFinished = true
+            }
+            // bloxd end
 
-        if (!done3) {
-            done3 = processRemoveQueue(this)
-                || processRemoveQueue(this)
-                || processRemoveQueue(this)
-            profile_hook('removes')
-        }
+            if (!removeFinished) {
+                removeFinished = processRemoveQueue(this)
+                    // || processRemoveQueue(this)
+                    // || processRemoveQueue(this)
+                // profile_hook('removes')
+            }
 
-        return (done1 && done2 && done3)
-    }, tickStartTime)
+            return (requestsFinished && meshingFinished && removeFinished)
+        }, tickStartTime)
 
 
-    if (doMeshing) {
         // when time is left over, look for low-priority extra meshing
         var dt = performance.now() - tickStartTime
         ptime -= dt
         if (ptime > 0.5) {
             lookForChunksToMesh(this)
-            profile_hook('looking')
+            // profile_hook('looking')
             loopForTime(ptime, () => {
                 var done = processMeshingQueue(this, false)
-                profile_hook('meshes')
+                // profile_hook('meshes')
                 return done
             }, tickStartTime)
         }
