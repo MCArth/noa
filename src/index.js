@@ -494,8 +494,15 @@ export class Engine extends EventEmitter {
      * Does not check whether any entities are in the way! 
      */
     setBlock(id, x, y = 0, z = 0) {
-        if (x.length) return this.world.setBlockID(id, x[0], x[1], x[2])
-        return this.world.setBlockID(id, x, y, z)
+        // Bloxd change start - update block target id on world change
+        let retVal
+        if (x.length) retVal = this.world.setBlockID(id, x[0], x[1], x[2])
+        else retVal = this.world.setBlockID(id, x, y, z)
+
+        this._targetedBlockDat.blockID = this.world.getBlockID(this._targetedBlockDat.position[0], this._targetedBlockDat.position[1], this._targetedBlockDat.position[2])
+
+        return retVal
+        // bloxd change end
     }
 
     /**
