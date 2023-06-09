@@ -19,17 +19,20 @@ var defaultOptions = {
 
 const physics = require('../components/physics.js')
 const position = require('../components/position.js')
+const smoothCamera = require('../components/smoothCamera')
+const collideEntities = require('../components/collideEntities')
 const collideTerrain = require('../components/collideTerrain')
+const followsEntity = require('../components/followsEntity')
 
 const components = {
     'physics': {fn: physics, server: true},
     'position': {fn: position, server: true},
     'shadow': {},
-    'smoothCamera': {},
-    'collideEntities': {},
+    'smoothCamera': {fn: smoothCamera, server: true},
+    'collideEntities': {fn: collideEntities, server: true},
     'collideTerrain': {fn: collideTerrain, server: true},
     'fadeOnZoom': {},
-    'followsEntity': {},
+    'followsEntity': {fn: followsEntity, server: true},
     'mesh': {},
 }
 

@@ -37,6 +37,9 @@ export default function (noa) {
             collideBits: 1 | 0,
             collideMask: 1 | 0,
             callback: null,
+            
+            widthExpandAmt: 0,
+            heightExpandAmt: 0,
         },
 
         onAdd: null,
@@ -52,7 +55,17 @@ export default function (noa) {
             for (var i = 0; i < states.length; i++) {
                 var id = states[i].__id
                 var dat = ents.getPositionData(id)
-                intervals[i] = dat._extents
+
+                var hw = states[i].widthExpandAmt/2
+                var hh = states[i].heightExpandAmt/2
+                intervals[i] = [
+                    dat._extents[0]-hw, 
+                    dat._extents[1]-hh, 
+                    dat._extents[2]-hw, 
+                    dat._extents[3]+hw, 
+                    dat._extents[4]+hh, 
+                    dat._extents[5]+hw, 
+                ]
             }
             intervals.length = states.length
 
