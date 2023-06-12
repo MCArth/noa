@@ -116,7 +116,7 @@ export function setPhysicsFromPosition(physState, posState) {
 
 
 
-function setPositionFromPhysics(physState, posState) {
+export function setPositionFromPhysics(physState, posState) {
     var base = physState.body.aabb.base
     var hw = posState.width / 2
     vec3.set(posState._localPosition, base[0] + hw, base[1], base[2] + hw)
