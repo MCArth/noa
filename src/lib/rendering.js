@@ -80,7 +80,7 @@ var defaults = {
 
 function MeshMetadataType() {
     this.markAsDirtyOnRebase = false
-    this.playerEId = null
+    this.eId = null
     this.gltf = null // set by gltf importer
 
     this._noaIsDynamicContent = false
