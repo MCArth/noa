@@ -52,8 +52,7 @@ export class Physics extends VoxelPhysics {
         var offset = noa.worldOriginOffset
 
         var blockGetter = (x, y, z) => {
-            var id = world.getBlockID(x + offset[0], y + offset[1], z + offset[2])
-            return solidLookup[id]
+            return world.getBlockSolidity(x + offset[0], y + offset[1], z + offset[2]) // Bloxd change - use world.getBlockSolidity to take into account custom walkThrough types/rects
         }
         var isFluidGetter = (x, y, z) => {
             var id = world.getBlockID(x + offset[0], y + offset[1], z + offset[2])
