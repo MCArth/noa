@@ -35,8 +35,10 @@ export class Registry {
     /** 
      * @internal 
      * @param {import('../index').Engine} noa
+     * @param {any} opts
+     * @param {import('./terrainMaterials').TerrainMatManager} terrainMatManager
     */
-    constructor(noa, opts) {
+    constructor(noa, opts, terrainMatManager) {
         opts = Object.assign({}, defaults, opts)
         /** @internal */
         this.noa = noa
@@ -60,7 +62,7 @@ export class Registry {
         var blockIsPlain = [false]  // true if voxel is "boring" - solid/opaque, no special props
 
         // this one is keyed by `blockID*6 + faceNumber`
-        var blockMats = [0, 0, 0, 0, 0, 0]
+        this.blockMats = [0, 0, 0, 0, 0, 0]
 
         // and these are keyed by material id
         var matColorLookup = [null]
@@ -141,7 +143,7 @@ export class Registry {
 
             // argument is material name, but store as material id, allocating one if needed
             for (var i = 0; i < 6; ++i) {
-                blockMats[id * 6 + i] = getMaterialId(this, matIDs, mats[i], true)
+                this.blockMats[id * 6 + i] = getMaterialId(this, matIDs, mats[i], true)
             }
 
             // props data object - currently only used for fluid properties
@@ -204,6 +206,9 @@ export class Registry {
                 atlasIndex: opts.atlasIndex,
                 renderMat: opts.renderMaterial,
             }
+
+            terrainMatManager.getTerrainMatId(matID)
+
             return matID
         }
 
@@ -247,7 +252,7 @@ export class Registry {
         // look up a block ID's face material
         // dir is a value 0..5: [ +x, -x, +y, -y, +z, -z ]
         this.getBlockFaceMaterial = function (blockId, dir) {
-            return blockMats[blockId * 6 + dir]
+            return this.blockMats[blockId * 6 + dir]
         }
 
 
@@ -314,8 +319,8 @@ export class Registry {
 
         // add a default material and set ID=1 to it
         // this is safe since registering new block data overwrites the old
-        this.registerMaterial('dirt', { color: [0.4, 0.3, 0] })
-        this.registerBlock(1, { material: 'dirt' })
+        // this.registerMaterial('dirt', { color: [0.4, 0.3, 0] }) // bloxd comment out
+        // this.registerBlock(1, { material: 'dirt' }) // bloxd comment out
 
     }
 

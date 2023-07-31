@@ -29,6 +29,7 @@ import { makeProfileHook } from './lib/util'
 
 
 import packageJSON from '../package.json'
+import { TerrainMatManager } from './lib/terrainMaterials'
 var version = packageJSON.version
 
 
@@ -146,6 +147,12 @@ export class Engine extends EventEmitter {
         /** Child module for managing the game's container, canvas, etc. */
         this.container = new Container(this, opts)
 
+        /** Manages the world, chunks, and all voxel data */
+        this.world = new World(this, opts)
+
+        /** Rendering manager */
+        this.rendering = new Rendering(this, opts, this.container.canvas)
+
         // bloxd start - comment define properties that are entering noa into slow dictionary mode
         /** The game's tick rate (number of ticks per second) 
          * @type {number}
@@ -164,24 +171,20 @@ export class Engine extends EventEmitter {
             // get: () => this.container._shell.maxRenderRate,
             // set: (v) => { this.container._shell.maxRenderRate = v || 0 },
         // })
+
+        // wrangles which block materials can be merged into the same mesh
+        this._terrainMatManager = new TerrainMatManager(this)
+
         // bloxd end
-
-
 
         /** Inputs manager - abstracts key/mouse input */
         this.inputs = new Inputs(this, opts, this.container.element)
 
         /** A registry where voxel/material properties are managed */
-        this.registry = new Registry(this, opts)
-
-        /** Manages the world, chunks, and all voxel data */
-        this.world = new World(this, opts)
+        this.registry = new Registry(this, opts, this._terrainMatManager)
 
         var _consoleLog = console.log
         if (opts.silentBabylon) console.log = () => { }
-
-        /** Rendering manager */
-        this.rendering = new Rendering(this, opts, this.container.canvas)
 
         if (opts.silentBabylon) console.log = _consoleLog
 
@@ -303,7 +306,7 @@ export class Engine extends EventEmitter {
         */
 
         /** @internal */
-        this._terrainMesher = new TerrainMesher(this)
+        this._terrainMesher = new TerrainMesher(this, this._terrainMatManager, opts)
 
         /** @internal */
         this._objectMesher = new ObjectMesher(this)

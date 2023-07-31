@@ -5,7 +5,7 @@
  * object passed to the [[Engine]]):
  * ```js
  * var defaultOptions = {
- *   chunkSize: 24,
+ *   chunkSize: 32,
  *   chunkAddDistance: [2, 2],           // [horizontal, vertical]
  *   chunkRemoveDistance: [3, 3],        // [horizontal, vertical]
  *   worldGenWhilePaused: false,

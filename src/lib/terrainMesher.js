@@ -6,13 +6,14 @@
 import ndarray from 'ndarray'
 import { Mesh } from '@babylonjs/core/Meshes/mesh'
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData'
-import { TerrainMatManager } from './terrainMaterials'
 import { makeProfileHook } from './util'
+import Chunk from './chunk'
 
 
 
 // enable for profiling..
 var PROFILE_EVERY = 0
+var ignoreMaterials = false
 
 
 
@@ -31,19 +32,109 @@ var PROFILE_EVERY = 0
  *      
 */
 
-
-/** @param {import('../index').Engine} noa  */
-export default function TerrainMesher(noa) {
-
-    // wrangles which block materials can be merged into the same mesh
-    var terrainMatManager = new TerrainMatManager(noa)
-
+/** 
+ * @param {import('../index').Engine} noa
+ * @param {import('./terrainMaterials').TerrainMatManager} terrainMatManager
+ */
+export default function TerrainMesher(noa, terrainMatManager, opts) {
     // internally expose the default flat material used for untextured terrain
     this._defaultMaterial = terrainMatManager._defaultMat
 
-    // two-pass implementations for this module
-    var greedyMesher = new GreedyMesher(noa, terrainMatManager)
-    var meshBuilder = new MeshBuilder(noa, terrainMatManager)
+    // two-pass implementations for this module  
+    /**
+     * @type {MeshBuilder}
+     */
+    var meshBuilder
+
+    /**
+     * @type {GreedyMesher}
+     */
+    var greedyMesher
+
+    let worker
+    let chunkSize = opts.chunkSize ?? 32;
+    chunkArrPool = new ChunkArrPool(chunkSize)
+    noDataNdchunkPool = new NoDataNdchunkPool(chunkSize)
+	neighborChunkArrPool = new NeighborChunkArrPool()
+
+    const doThreadedMeshing = true
+
+    function lazyInitMeshingObjs() {
+        if (!worker) {
+            const solidLookupArr = noa.registry._solidityLookup
+            const doAO = noa.rendering.useAO
+            const skipRevAo = (noa.rendering.revAoVal === noa.rendering.aoVals[0])
+            const opacityLookup = noa.registry._opacityLookup
+            const blockFaceToMatId = noa.registry.blockMats
+            const matIdToTerrainId = terrainMatManager._blockMatIDtoTerrainID
+            const aoVals = noa.rendering.aoVals
+            const revAoVal = noa.rendering.revAoVal
+            const atlasIndexLookup = noa.registry._matAtlasIndexLookup
+            const matColorLookup = noa.registry._materialColorLookup
+            
+            greedyMesher = new GreedyMesher(
+                solidLookupArr,
+                doAO,
+                skipRevAo,
+                opacityLookup,
+                blockFaceToMatId,
+                matIdToTerrainId,
+                chunkSize,
+            )
+            meshBuilder = new MeshBuilder(
+                noa, 
+                terrainMatManager,
+                doAO,
+                aoVals,
+                revAoVal,
+                atlasIndexLookup,
+                matColorLookup,
+            )
+        
+            worker = opts.getMeshingWorker()
+            worker.postMessage({
+                type: "meshingInit",
+                data: {
+                    chunkSize,
+                    solidLookupArr,
+                    doAO,
+                    skipRevAo,
+                    opacityLookup,
+                    blockFaceToMatId,
+                    matIdToTerrainId,
+                    aoVals,
+                    revAoVal,
+                    atlasIndexLookup,
+                    matColorLookup,
+                },
+            })
+        
+            worker.onmessage = ({data: {chunkI, chunkJ, chunkK, vertexDataInfo, reusableChunkArrs}}) => {
+                for (const arr of reusableChunkArrs) {
+                    chunkArrPool.release(arr)
+                }
+
+                const chunk = noa.world._storage.getChunkByIndexes(chunkI, chunkJ, chunkK)
+                if (chunk) {
+                    // remove any previous terrain meshes
+                    chunk._terrainMeshes.forEach(m => m.dispose())
+                    chunk._terrainMeshes.length = 0
+
+                    var meshes = meshBuilder.buildMesh(vertexDataInfo)
+            
+                    // add meshes to scene and finish
+                    meshes.forEach((mesh) => {
+                        noa.rendering.addMeshToScene(mesh, true, chunk.pos, this)
+                        mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
+                        chunk._terrainMeshes.push(mesh)
+                    })
+                }
+                else {
+                    console.error("Meshed chunk but no chunk object. Probably not an issue but perhaps useful for debugging purposes.")
+                }
+            }
+        }
+    }
 
 
     /*
@@ -67,30 +158,66 @@ export default function TerrainMesher(noa) {
      * meshing entry point and high-level flow
      * @param {import('./chunk').default} chunk 
      */
-    this.meshChunk = function (chunk, ignoreMaterials = false) {
-        profile_hook('start')
+    this.meshChunk = function (chunk) {
+        lazyInitMeshingObjs() // Give client time to register blocks etc before sending all info to worker
 
-        // remove any previous terrain meshes
-        chunk._terrainMeshes.forEach(m => m.dispose())
-        chunk._terrainMeshes.length = 0
-        profile_hook('cleanup')
+        if (doThreadedMeshing) {
+            const {copiedNeighbors, transferableBuffers} = greedyMesher.copyNeighborChunksForMesh(chunk)
 
-        // greedy mesher generates struct of face data
-        var faceDataSet = greedyMesher.mesh(chunk, ignoreMaterials)
-        profile_hook('geom')
+            const {
+                i: chunkI,
+                j: chunkJ,
+                k: chunkK,
+                size,
+                _isEmpty,
+                _isFull,
+                _wholeLayerVoxel,
+                requestID,
+            } = chunk
 
-        // builder generates mesh data (positions, normals, etc)
-        var meshes = meshBuilder.buildMesh(chunk, faceDataSet, ignoreMaterials)
-        profile_hook('build')
+            const copyChunk = {
+                chunkI,
+                chunkJ,
+                chunkK,
+                size,
+                _isEmpty,
+                _isFull,
+                _wholeLayerVoxel,
+                requestID,
+                _neighbors: null,
+                _neighborsData: copiedNeighbors.data,
+            }
 
-        profile_hook('end')
+            worker.postMessage({
+                type: "meshChunk",
+                data: {
+                    chunk: copyChunk,
+                },
+            }, transferableBuffers)
+        }
+        else {
+            // remove any previous terrain meshes
+            chunk._terrainMeshes.forEach(m => m.dispose())
+            chunk._terrainMeshes.length = 0
 
-        // add meshes to scene and finish
-        meshes.forEach((mesh) => {
-            noa.rendering.addMeshToScene(mesh, true, chunk.pos, this)
-            mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
-            chunk._terrainMeshes.push(mesh)
-        })
+            // greedy mesher generates struct of face data
+            var faceDataSet = greedyMesher.mesh(chunk)
+
+            // builder generates mesh data (positions, normals, etc)
+            var vertexDataInfo = meshBuilder.createMeshData(
+                faceDataSet,
+                chunk,
+            )
+
+            var meshes = meshBuilder.buildMesh(vertexDataInfo)
+
+            // add meshes to scene and finish
+            meshes.forEach((mesh) => {
+                noa.rendering.addMeshToScene(mesh, true, chunk.pos, this)
+                mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
+                chunk._terrainMeshes.push(mesh)
+            })
+        }
     }
 
 }
@@ -161,22 +288,277 @@ function MeshedFaceData() {
  *      which the terrain builder can then make into meshes.
  * 
  * 
- * @param {import('../index').Engine} noa
- * @param {import('./terrainMaterials').TerrainMatManager} terrainMatManager
 */
 
-function GreedyMesher(noa, terrainMatManager) {
+export function GreedyMesher(
+    solidLookupArr,
+    doAO,
+    skipRevAo,
+    opacityLookup,
+    blockFaceToMatId,
+    matIdToTerrainId,
+    chunkSize,
+) {
 
     // class-wide cached structs and getters
     var maskCache = new Int16Array(16)
     var aoMaskCache = new Int16Array(16)
 
+    // See registry.getBlockFaceMaterial for detail
+    var matIdGetter = (blockId, dir) => blockFaceToMatId[blockId * 6 + dir]
+
     // terrain ID accessor can be overridded for hacky reasons
-    var realGetTerrainID = terrainMatManager.getTerrainMatId.bind(terrainMatManager)
+    var realGetTerrainID = (matID) => matIdToTerrainId[matID]
     var fakeGetTerrainID = (matID) => 1
     var terrainIDgetter = realGetTerrainID
 
 
+    // Info for copying needed voxel data from neighbors to a central chunk
+    const h = chunkSize-1
+    const cornerChunks = [
+        1, 1, 1,
+        1, 1, -1,
+        1, -1, 1,
+        -1, 1, 1,
+        -1, -1, 1,
+        -1, 1, -1,
+        1, -1, -1,
+        -1, -1, -1
+    ]
+    const cornerCoords = [
+        0, 0, 0,
+        0, 0, h,
+        0, h, 0,
+        h, 0, 0,
+        h, h, 0,
+        h, 0, h,
+        0, h, h,
+        h, h, h
+    ]
+
+    const edgeChunks = [
+        0, 1, 1,
+        0, 1, -1,
+        1, 1, 0,
+        -1, 1, 0,
+        1, 0, 1,
+        -1, 0, 1,
+        1, 0, -1,
+        -1, 0, -1,
+        0, -1, 1,
+        0, -1, -1,
+        1, -1, 0,
+        -1, -1, 0
+    ]
+    // Two subsequent coords per edge to get the stride between them for a tight loop on the actual data arr
+    const subsequentEdgeCoords = [
+        0, 0, 0,
+        1, 0, 0,
+
+        0, 0, h,
+        1, 0, h,
+
+        0, 0, 0,
+        0, 0, 1,
+
+        h, 0, 0,
+        h, 0, 1,
+
+        0, 0, 0,
+        0, 1, 0,
+
+        h, 0, 0,
+        h, 1, 0,
+
+        0, 0, h,
+        0, 1, h,
+
+        h, 0, h,
+        h, 1, h,
+
+        0, h, 0,
+        1, h, 0,
+
+        0, h, h,
+        1, h, h,
+
+        0, h, 0,
+        0, h, 1,
+
+        h, h, 0,
+        h, h, 1,
+    ]
+
+    const faceChunks = [
+        0, 0, 1,
+        0, 0, -1,
+        0, 1, 0,
+        0, -1, 0,
+        1, 0, 0,
+        -1, 0, 0,
+    ]
+    // Subsequent coords so we can compute stride and get a tight loop on actual data
+    const subsequentColumnCoords = [
+        0, 0, 0,
+        1, 0, 0,
+
+        0, 0, h,
+        1, 0, h,
+
+        0, 0, 0,
+        1, 0, 0,
+
+        0, h, 0,
+        1, h, 0,
+
+        0, 0, 0,
+        0, 1, 0,
+
+        h, 0, 0,
+        h, 1, 0,
+    ]
+    const subsequentRowCoords = [
+        0, 0, 0,
+        0, 1, 0,
+
+        0, 0, h,
+        0, 1, h,
+
+        0, 0, 0,
+        0, 0, 1,
+
+        0, h, 0,
+        0, h, 1,
+
+        0, 0, 0,
+        0, 0, 1,
+
+        h, 0, 0,
+        h, 0, 1,
+    ]
+
+    /**
+     * The meshing algorithm needs not only the voxels of the chunk to mesh but also certain voxels of surrounding chunks
+     * for both the main meshing and the ambient occlusion calculations
+     *
+     * @param {Chunk} chunk 
+     */
+    this.copyNeighborChunksForMesh = function copyNeighborChunksForMesh(chunk) {
+	    // const copiedNeighbors = ndarray(Array.from(Array(27), () => null), [3, 3, 3]).lo(1, 1, 1)
+	    const copiedNeighbors = neighborChunkArrPool.get()
+        const cs = chunk.size
+
+        // Chunks that share a corner with the chunk to mesh
+        for (let ci = 0; ci < cornerChunks.length; ci += 3) {
+            const i = cornerChunks[ci]
+            const j = cornerChunks[ci+1]
+            const k = cornerChunks[ci+2]
+            const neighborChunk = chunk._neighbors.get(i, j, k) // neighbour chunk
+            if (neighborChunk) {
+                const copiedChunk = chunkArrPool.get()
+                copiedNeighbors.set(i, j, k, copiedChunk)
+                const copiedNdarr = noDataNdchunkPool.get(copiedChunk)
+                const x = cornerCoords[ci]
+                const y = cornerCoords[ci+1]
+                const z = cornerCoords[ci+2]
+                copiedNdarr.set(x, y, z, neighborChunk.voxels.get(x, y, z))
+
+	            noDataNdchunkPool.release(copiedNdarr)
+            }
+        }
+
+
+        // Chunks that share an edge with the chunk to mesh
+        for (let ci = 0; ci < edgeChunks.length; ci += 3) {
+            const i = edgeChunks[ci]
+            const j = edgeChunks[ci+1]
+            const k = edgeChunks[ci+2]
+            const neighborChunk = chunk._neighbors.get(i, j, k) // neighbour chunk
+            if (neighborChunk) {
+                const copiedChunk = chunkArrPool.get()
+                copiedNeighbors.set(i, j, k, copiedChunk)
+                const copiedNdarr = noDataNdchunkPool.get(copiedChunk)
+
+                const x1 = subsequentEdgeCoords[2*ci]
+                const y1 = subsequentEdgeCoords[2*ci+1]
+                const z1 = subsequentEdgeCoords[2*ci+2]
+                const x2 = subsequentEdgeCoords[2*ci+3]
+                const y2 = subsequentEdgeCoords[2*ci+4]
+                const z2 = subsequentEdgeCoords[2*ci+5]
+
+                const i1 = copiedNdarr.index(x1, y1, z1)
+                const i2 = copiedNdarr.index(x2, y2, z2)
+                const stride = i2 - i1
+
+                for (let counter = 0, idx = i1; counter < cs; counter++, idx += stride) {
+                    copiedChunk[idx] = neighborChunk.voxels.data[idx]
+                }
+	            noDataNdchunkPool.release(copiedNdarr)
+            }
+        }
+
+        // Chunks that share a face with the chunk to mesh
+        for (let ci = 0; ci < faceChunks.length; ci += 3) {
+            const i = faceChunks[ci]
+            const j = faceChunks[ci+1]
+            const k = faceChunks[ci+2]
+            const neighborChunk = chunk._neighbors.get(i, j, k) // neighbour chunk
+            if (neighborChunk) {
+                const copiedChunk = chunkArrPool.get()
+                copiedNeighbors.set(i, j, k, copiedChunk)
+                const copiedNdarr = noDataNdchunkPool.get(copiedChunk)
+
+                const cx1 = subsequentColumnCoords[2*ci]
+                const cy1 = subsequentColumnCoords[2*ci+1]
+                const cz1 = subsequentColumnCoords[2*ci+2]
+                const cx2 = subsequentColumnCoords[2*ci+3]
+                const cy2 = subsequentColumnCoords[2*ci+4]
+                const cz2 = subsequentColumnCoords[2*ci+5]
+
+                const rx1 = subsequentRowCoords[2*ci]
+                const ry1 = subsequentRowCoords[2*ci+1]
+                const rz1 = subsequentRowCoords[2*ci+2]
+                const rx2 = subsequentRowCoords[2*ci+3]
+                const ry2 = subsequentRowCoords[2*ci+4]
+                const rz2 = subsequentRowCoords[2*ci+5]
+
+                let ci1 = copiedNdarr.index(cx1, cy1, cz1);
+                let ci2 = copiedNdarr.index(cx2, cy2, cz2);
+                const columnStride = ci2 - ci1
+                let ri1 = copiedNdarr.index(rx1, ry1, rz1);
+                let ri2 = copiedNdarr.index(rx2, ry2, rz2);
+                const rowStride = ri2 - ri1
+
+                for (let counter1 = 0, cIdx = ci1; counter1 < cs; counter1++, cIdx += columnStride) {
+                    for (let counter2 = 0, rIdx = cIdx; counter2 < cs; counter2++, rIdx += rowStride) {
+                        copiedChunk[rIdx] = neighborChunk.voxels.data[rIdx]
+                    }
+                }
+                noDataNdchunkPool.release(copiedNdarr)
+            }
+        }
+
+        // Center chunk, need all blocks
+        const copiedChunk = chunkArrPool.get()
+        copiedNeighbors.set(0, 0, 0, copiedChunk)
+        for (let x = 0; x < chunk.voxels.data.length; x++) {
+            copiedChunk[x] = chunk.voxels.data[x]
+        }
+
+        const transferableBuffers = []
+        for (const copy of copiedNeighbors.data) {
+            if (copy) {
+                transferableBuffers.push(copy.buffer)
+            }
+        }
+
+	    neighborChunkArrPool.release(copiedNeighbors)
+
+        return {
+            copiedNeighbors,
+            transferableBuffers,
+        }
+    }
 
 
     /** 
@@ -185,7 +567,7 @@ function GreedyMesher(noa, terrainMatManager) {
      * @param {import('./chunk').default} chunk
      * @returns {Object.<string, MeshedFaceData>} keyed by terrain material ID 
      */
-    this.mesh = function (chunk, ignoreMaterials) {
+    this.mesh = function (chunk) {
         var cs = chunk.size
         terrainIDgetter = (ignoreMaterials) ? fakeGetTerrainID : realGetTerrainID
 
@@ -284,7 +666,6 @@ function GreedyMesher(noa, terrainMatManager) {
     function prepareSolidityLookup(nabVoxelsT, size) {
         currentChunkVoxels = nabVoxelsT.get(0, 0, 0)
         currentNeighbors = nabVoxelsT
-        solidLookupArr = noa.registry._solidityLookup
         if (edgeValueLookup.length !== size + 1) {
             edgeValueLookup = []
             coordValueLookup = []
@@ -301,7 +682,6 @@ function GreedyMesher(noa, terrainMatManager) {
     var edgeValueLookup = []
     var coordValueLookup = []
     var missingValueLookup = []
-    var solidLookupArr
     var currentChunkVoxels
     var currentNeighbors
 
@@ -348,11 +728,7 @@ function GreedyMesher(noa, terrainMatManager) {
         var len = arrA.shape[1]
         var mask = maskCache
         var aoMask = aoMaskCache
-        var doAO = noa.rendering.useAO
-        var skipRevAo = (noa.rendering.revAoVal === noa.rendering.aoVals[0])
 
-        var opacityLookup = noa.registry._opacityLookup
-        var getMaterial = noa.registry.getBlockFaceMaterial
         var materialDir = d * 2
 
         // mask is iterated by a simple integer, both here and later when
@@ -403,8 +779,8 @@ function GreedyMesher(noa, terrainMatManager) {
                 if (op0 && op1) continue
 
                 // also no face if both block faces have the same block material
-                var m0 = getMaterial(id0, materialDir)
-                var m1 = getMaterial(id1, materialDir + 1)
+                var m0 = matIdGetter(id0, materialDir)
+                var m1 = matIdGetter(id1, materialDir + 1)
                 if (m0 === m1) continue
 
                 // choose which block face to draw:
@@ -438,7 +814,6 @@ function GreedyMesher(noa, terrainMatManager) {
     // construct geometry data from the masks
 
     function constructGeometryFromMasks(i, d, u, v, len1, len2, numFaces, faceDataSet) {
-        var doAO = noa.rendering.useAO
         var mask = maskCache
         var aomask = aoMaskCache
 
@@ -551,11 +926,75 @@ var faceDataPool = (() => {
     return { get, reset }
 })()
 
+/**
+ * @type {ChunkArrPool}
+ */
+let chunkArrPool
+class ChunkArrPool {
+    arr = []
+    cs = 0
+    constructor(chunkSize) {
+        this.cs = chunkSize
+    }
+    get() {
+        if (this.arr.length === 0) {
+            this.arr.push(new Uint16Array(this.cs * this.cs * this.cs))
+        }
+        return this.arr.pop()
+    }
+    release(chunkArr) {
+        this.arr.push(chunkArr)
+    }
+}
 
-
-
-
-
+/**
+ * @type {NoDataNdchunkPool}
+ */
+let noDataNdchunkPool
+class NoDataNdchunkPool {
+    arr = []
+    cs = 0
+    constructor(chunkSize) {
+        this.cs = chunkSize
+    }
+    get(fillWithData) {
+        if (this.arr.length === 0) {
+            this.arr.push(
+                ndarray(null, [this.cs, this.cs, this.cs])
+            )
+        }
+	    let ndArr = this.arr.pop();
+        ndArr.data = fillWithData
+	    return ndArr
+    }
+    release(ndChunk) {
+        ndChunk.data = null
+        this.arr.push(ndChunk)
+    }
+}
+/**
+ * @type {NeighborChunkArrPool}
+ */
+let neighborChunkArrPool
+class NeighborChunkArrPool {
+	arr = []
+	get() {
+        let ndArr
+		if (this.arr.length === 0) {
+            ndArr = ndarray(Array.from(Array(27), () => null), [3, 3, 3]).lo(1, 1, 1)
+		}
+        else {
+			ndArr = this.arr.pop()
+            for (let i = 0; i < ndArr.data.length; i++) {
+                ndArr.data[i] = null
+            }
+        }
+		return ndArr
+	}
+	release(neighbors) {
+		this.arr.push(neighbors)
+	}
+}
 
 
 
@@ -581,23 +1020,71 @@ var faceDataPool = (() => {
  */
 
 /** @param {import('../index').Engine} noa  */
-function MeshBuilder(noa, terrainMatManager) {
+export function MeshBuilder(
+    noa, 
+    terrainMatManager,
+    doAO,
+    aoVals,
+    revAoVal,
+    atlasIndexLookup,
+    matColorLookup,
+) {
 
 
-    /** 
-     * Consume the intermediate FaceData struct and produce
-     * actual mesehes the 3D engine can render
-     * @param {Object.<string, MeshedFaceData>} faceDataSet  
-    */
-    this.buildMesh = function (chunk, faceDataSet, ignoreMaterials) {
+    this.buildMesh = function (vertexDataInfo) {
         var scene = noa.rendering.getScene()
 
-        var doAO = noa.rendering.useAO
-        var aoVals = noa.rendering.aoVals
-        var revAoVal = noa.rendering.revAoVal
+        var meshes = []
 
-        var atlasIndexLookup = noa.registry._matAtlasIndexLookup
-        var matColorLookup = noa.registry._materialColorLookup
+        for (const data of vertexDataInfo) {
+            const {
+                positions,
+                indices,
+                normals,
+                colors,
+                uvs,
+                atlasIndexes,
+                requestID,
+                terrainID,
+            } = data
+
+            // the mesh and vertexData object
+            var name = `chunk_${requestID}_${terrainID}`
+            var mesh = new Mesh(name, scene)
+            var vdat = new VertexData()
+
+            vdat.positions = positions
+            vdat.indices = indices
+            vdat.normals = normals
+            vdat.colors = colors
+            vdat.uvs = uvs
+            vdat.applyToMesh(mesh)
+
+            // clobber babylon's bounding internals
+            mesh.doNotSyncBoundingInfo = true
+            mesh._updateBoundingInfo = () => mesh
+            mesh._refreshBoundingInfo = () => mesh
+
+            // meshes using a texture atlas need atlasIndices
+            if (atlasIndexes) {
+                mesh.setVerticesData('texAtlasIndices', atlasIndexes, false, 1)
+            }
+
+            // materials wrangled by external module
+            if (!ignoreMaterials) {
+                mesh.material = terrainMatManager.getMaterial(terrainID)
+            }
+
+            meshes.push(mesh)
+        }
+
+        return meshes
+    }
+
+    this.createMeshData = function createMeshData(
+        faceDataSet, 
+        chunk, 
+    ) {
         var white = [1, 1, 1]
 
 
@@ -605,7 +1092,7 @@ function MeshBuilder(noa, terrainMatManager) {
 
         // geometry data is already keyed by terrain type, so build
         // one mesh per geomData object in the hash
-        var meshes = []
+        var datas = []
         for (var key in faceDataSet) {
             var faceData = faceDataSet[key]
             var terrainID = faceData.terrainID
@@ -618,12 +1105,14 @@ function MeshBuilder(noa, terrainMatManager) {
             }
 
             // build the necessary arrays
-            var positions = []
-            var indices = []
-            var normals = []
-            var colors = []
-            var uvs = []
-            var atlasIndexes = []
+            var nf = faceData.numFaces
+            var indices = new Uint16Array(nf * 6)
+            var positions = new Float32Array(nf * 12)
+            var normals = new Float32Array(nf * 12)
+            var colors = new Float32Array(nf * 16)
+            var uvs = new Float32Array(nf * 8)
+            var atlasIndexes
+            if (usesAtlas) atlasIndexes = new Float32Array(nf * 4)
 
             // scan all faces in the struct, creating data for each
             for (var f = 0; f < faceData.numFaces; f++) {
@@ -667,36 +1156,22 @@ function MeshBuilder(noa, terrainMatManager) {
                 }
             }
 
-
-
-            // the mesh and vertexData object
-            var name = `chunk_${chunk.requestID}_${terrainID}`
-            var mesh = new Mesh(name, scene)
-            var vdat = new VertexData()
-
-            vdat.positions = positions
-            vdat.indices = indices
-            vdat.normals = normals
-            vdat.colors = colors
-            vdat.uvs = uvs
-            vdat.applyToMesh(mesh)
-
-            // meshes using a texture atlas need atlasIndices
-            if (usesAtlas) {
-                mesh.setVerticesData('texAtlasIndices', atlasIndexes, false, 1)
-            }
-
-            // materials wrangled by external module
-            if (!ignoreMaterials) {
-                mesh.material = terrainMatManager.getMaterial(terrainID)
-            }
+            datas.push({
+                positions,
+                indices,
+                normals,
+                colors,
+                uvs,
+                atlasIndexes: usesAtlas ? atlasIndexes : null,
+                requestID: chunk.requestID,
+                terrainID,
+            })
 
             // done
             // geomData.dispose()
-            meshes.push(mesh)
         }
 
-        return meshes
+        return datas
     }
 
 
