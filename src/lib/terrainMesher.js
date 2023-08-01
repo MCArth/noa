@@ -154,6 +154,18 @@ export default function TerrainMesher(noa, terrainMatManager, opts) {
     }
 
 
+    let tempChunk = {
+        chunkI: 0,
+        chunkJ: 0,
+        chunkK: 0,
+        size: 0,
+        _isEmpty: false,
+        _isFull: false,
+        _wholeLayerVoxel: null,
+        requestID: "",
+        _neighbors: null,
+        _neighborsData: null,
+    }
     /**
      * meshing entry point and high-level flow
      * @param {import('./chunk').default} chunk 
@@ -175,23 +187,21 @@ export default function TerrainMesher(noa, terrainMatManager, opts) {
                 requestID,
             } = chunk
 
-            const copyChunk = {
-                chunkI,
-                chunkJ,
-                chunkK,
-                size,
-                _isEmpty,
-                _isFull,
-                _wholeLayerVoxel,
-                requestID,
-                _neighbors: null,
-                _neighborsData: copiedNeighbors.data,
-            }
+            tempChunk.chunkI = chunkI
+            tempChunk.chunkJ = chunkJ
+            tempChunk.chunkK = chunkK
+            tempChunk.size = size
+            tempChunk._isEmpty = _isEmpty
+            tempChunk._isFull = _isFull
+            tempChunk._wholeLayerVoxel = _wholeLayerVoxel
+            tempChunk.requestID = requestID
+            tempChunk._neighbors = null
+            tempChunk._neighborsData = copiedNeighbors.data
 
             worker.postMessage({
                 type: "meshChunk",
                 data: {
-                    chunk: copyChunk,
+                    chunk: tempChunk,
                 },
             }, transferableBuffers)
         }
@@ -437,6 +447,7 @@ export function GreedyMesher(
         h, 0, 1,
     ]
 
+    const tempBuffers = []
     /**
      * The meshing algorithm needs not only the voxels of the chunk to mesh but also certain voxels of surrounding chunks
      * for both the main meshing and the ambient occlusion calculations
@@ -444,7 +455,6 @@ export function GreedyMesher(
      * @param {Chunk} chunk 
      */
     this.copyNeighborChunksForMesh = function copyNeighborChunksForMesh(chunk) {
-	    // const copiedNeighbors = ndarray(Array.from(Array(27), () => null), [3, 3, 3]).lo(1, 1, 1)
 	    const copiedNeighbors = neighborChunkArrPool.get()
         const cs = chunk.size
 
@@ -545,18 +555,19 @@ export function GreedyMesher(
             copiedChunk[x] = chunk.voxels.data[x]
         }
 
-        const transferableBuffers = []
+        let bufferI = 0
         for (const copy of copiedNeighbors.data) {
             if (copy) {
-                transferableBuffers.push(copy.buffer)
+                tempBuffers[bufferI++] = copy.buffer
             }
         }
+        tempBuffers.length = bufferI
 
 	    neighborChunkArrPool.release(copiedNeighbors)
 
         return {
             copiedNeighbors,
-            transferableBuffers,
+            transferableBuffers: tempBuffers,
         }
     }
 
@@ -960,7 +971,7 @@ class NoDataNdchunkPool {
     get(fillWithData) {
         if (this.arr.length === 0) {
             this.arr.push(
-                ndarray(null, [this.cs, this.cs, this.cs])
+                ndarray(new Uint16Array(), [this.cs, this.cs, this.cs]) // Initialise with Uint16Array so the ndarray is constructed properly
             )
         }
 	    let ndArr = this.arr.pop();

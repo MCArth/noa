@@ -819,7 +819,7 @@ function processMeshingQueue(world, firstOnly) {
 
 function possiblyQueueChunkForMeshing(world, chunk) {
     if (!(chunk._terrainDirty || chunk._objectsDirty)) return false
-    if (chunk._neighborCount < chunk.minNeighborsToMesh) return false
+    // if (chunk._neighborCount < chunk.minNeighborsToMesh) return false // Bloxd comment out - minNeighborsToMesh isn't a chunk property (bug by andy)
     if (world._chunksToMesh.includes(chunk.i, chunk.j, chunk.k)) return false
     if (world._chunksToMeshFirst.includes(chunk.i, chunk.j, chunk.k)) return false
     var queue = (chunk._neighborCount === 26) ?

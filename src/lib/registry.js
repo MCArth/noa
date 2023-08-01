@@ -207,7 +207,12 @@ export class Registry {
                 renderMat: opts.renderMaterial,
             }
 
-            terrainMatManager.getTerrainMatId(matID)
+            const terrainId = terrainMatManager.getTerrainMatId(matID)
+            if (opts.atlasIndex >= 0 && opts.texHasAlpha) {
+                // Ensure texture atlas texture is registered for alpha
+                const material = terrainMatManager.getMaterial(terrainId)
+                material.diffuseTexture.hasAlpha = true
+            }
 
             return matID
         }
