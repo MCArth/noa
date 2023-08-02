@@ -20,6 +20,8 @@ export default function (noa, dist) {
     disc.material = mat
     disc.setEnabled(false)
     mat.freeze()
+    disc.alwaysSelectAsActiveMesh = true
+    disc.doNotSyncBoundingInfo = true
 
     // source mesh needn't be in the scene graph
     scene.removeMesh(disc)
@@ -42,6 +44,8 @@ export default function (noa, dist) {
         onAdd: function (eid, state) {
             var mesh = disc.createInstance('shadow_instance')
             noa.rendering.addMeshToScene(mesh)
+            mesh.alwaysSelectAsActiveMesh = true
+            mesh.doNotSyncBoundingInfo = true
             state._mesh = mesh
             mesh.setEnabled(false)
         },

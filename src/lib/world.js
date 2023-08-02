@@ -93,7 +93,7 @@ export class World extends EventEmitter {
         /** Cutoff (in ms) of time spent each **tick** 
          * @type {number}
         */
-        this.maxProcessingPerTick = 5
+        this.maxProcessingPerTick = 2
 
         /** Cutoff (in ms) of time spent each **render** 
          * @type {number}
