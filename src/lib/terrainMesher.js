@@ -121,10 +121,10 @@ export default function TerrainMesher(noa, terrainMatManager, opts) {
                     chunk._terrainMeshes.length = 0
 
                     var meshes = meshBuilder.buildMesh(vertexDataInfo)
-            
+
                     // add meshes to scene and finish
                     meshes.forEach((mesh) => {
-                        noa.rendering.addMeshToScene(mesh, true, chunk.pos, this)
+                        noa.rendering.addMeshToScene(mesh, true, chunk.pos)
                         mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
                         chunk._terrainMeshes.push(mesh)
                     })
@@ -223,7 +223,7 @@ export default function TerrainMesher(noa, terrainMatManager, opts) {
 
             // add meshes to scene and finish
             meshes.forEach((mesh) => {
-                noa.rendering.addMeshToScene(mesh, true, chunk.pos, this)
+                noa.rendering.addMeshToScene(mesh, true, chunk.pos)
                 mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
                 chunk._terrainMeshes.push(mesh)
             })

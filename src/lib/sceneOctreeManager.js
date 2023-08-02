@@ -45,10 +45,10 @@ export class SceneOctreeManager {
             if (!mesh.metadata) {
                 return false
             }
-            return (mesh.metadata._noaContainingBlock || mesh.metadata._noaIsDynamicContent)
+            return (mesh.metadata._noaContainingBlockId !== undefined || mesh.metadata._noaIsDynamicContent)
         }
 
-        this.addMesh = (mesh, isStatic, pos, chunk) => {
+        this.addMesh = (mesh, isStatic, pos) => {
             if (!isStatic) {
                 mesh.metadata._noaIsDynamicContent = true
                 octree.dynamicContent.push(mesh)
@@ -71,12 +71,11 @@ export class SceneOctreeManager {
                 block = makeOctreeBlock(loc, bs)
                 octree.blocks.push(block)
                 octBlocksHash[mapKey] = block
-                block._noaMapKey = mapKey
             }
 
             // do the actual adding logic
             block.entries.push(mesh)
-            mesh.metadata._noaContainingBlock = block
+            mesh.metadata._noaContainingBlockId = mapKey
 
             // rely on octrees for selection, skipping bounds checks
             mesh.alwaysSelectAsActiveMesh = true
@@ -87,14 +86,14 @@ export class SceneOctreeManager {
                 mesh.metadata._noaIsDynamicContent = null
                 removeUnorderedListItem(octree.dynamicContent, mesh)
             }
-            if (mesh.metadata._noaContainingBlock) {
+            if (mesh.metadata._noaContainingBlockId !== undefined) {
                 // bloxd start - comment out unneeded property
                 // mesh.metadata._noaContainingChunk = null
                 // bloxd end
-                var block = mesh.metadata._noaContainingBlock
+                var block = octBlocksHash[mesh.metadata._noaContainingBlockId]
                 removeUnorderedListItem(block.entries, mesh)
                 if (block.entries.length === 0) {
-                    delete octBlocksHash[block._noaMapKey]
+                    delete octBlocksHash[mesh.metadata._noaContainingBlockId]
                     removeUnorderedListItem(octree.blocks, block)
                 }
             }

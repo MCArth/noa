@@ -47,9 +47,9 @@ export class Rendering {
      * @param mesh the mesh to add to the scene
      * @param isStatic pass in true if mesh never moves (i.e. change octree blocks)
      * @param pos (optional) global position where the mesh should be
-     * @param containingChunk (optional) chunk to which the mesh is statically bound
+     * @param isPickable (optional) whether the mesh is pickable
      */
-    addMeshToScene(mesh: any, isStatic?: boolean, pos?: any, containingChunk?: any): void;
+    addMeshToScene(mesh: any, isStatic?: boolean, pos?: any, isPickable?: boolean): void;
     /**
      * Create a default standardMaterial:
      * flat, nonspecular, fully reflects diffuse and ambient light

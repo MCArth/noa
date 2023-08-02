@@ -84,7 +84,7 @@ function MeshMetadataType() {
     this.gltf = null // set by gltf importer
 
     this._noaIsDynamicContent = false
-    this._noaContainingBlock = null
+    this._noaContainingBlockId = undefined
 }
 
 export class Rendering {
@@ -270,10 +270,9 @@ var hlpos = []
  * @param mesh the mesh to add to the scene
  * @param isStatic pass in true if mesh never moves (i.e. change octree blocks)
  * @param pos (optional) global position where the mesh should be
- * @param containingChunk (optional) chunk to which the mesh is statically bound
  * @param isPickable (optional) whether the mesh is pickable
  */
-Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = null, containingChunk = null, isPickable=false) {
+Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = null, isPickable=false) {
     // exit silently if mesh has already been added and not removed
     if (this._octreeManager.includesMesh(mesh)) return
 
@@ -301,7 +300,7 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = nul
     // bloxd end
 
     // add to the octree, and add dispose handler to remove it
-    this._octreeManager.addMesh(mesh, isStatic, pos, containingChunk)
+    this._octreeManager.addMesh(mesh, isStatic, pos)
     mesh.onDisposeObservable.add(() => {
         this._octreeManager.removeMesh(mesh)
     })
