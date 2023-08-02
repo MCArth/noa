@@ -8,6 +8,7 @@ import { Mesh } from '@babylonjs/core/Meshes/mesh'
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData'
 import { makeProfileHook } from './util'
 import Chunk from './chunk'
+import {VertexBuffer} from "@babylonjs/core/Buffers/buffer";
 
 
 
@@ -128,6 +129,14 @@ export default function TerrainMesher(noa, terrainMatManager, opts) {
                         mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
                         chunk._terrainMeshes.push(mesh)
                     })
+
+                    // let meshesWrapper = noa.world._columnStorage.getColumnMeshesWrapper(chunkI, chunkK)
+                    // if (!meshesWrapper) {
+                    //     meshesWrapper = new ColumnMeshesWrapper(noa, meshBuilder, chunkI, chunkK)
+                    //     noa.world._columnStorage.setColumnMeshesWrapper(chunkI, chunkK, meshesWrapper)
+                    // }
+                    //
+                    // meshesWrapper.receivedChunkVertexData(chunkJ, vertexDataInfo)
                 }
                 else {
                     console.error("Meshed chunk but no chunk object. Probably not an issue but perhaps useful for debugging purposes.")
@@ -1043,8 +1052,6 @@ export function MeshBuilder(
 
 
     this.buildMesh = function (vertexDataInfo) {
-        var scene = noa.rendering.getScene()
-
         var meshes = []
 
         for (const data of vertexDataInfo) {
@@ -1059,37 +1066,63 @@ export function MeshBuilder(
                 terrainID,
             } = data
 
-            // the mesh and vertexData object
-            var name = `chunk_${requestID}_${terrainID}`
-            var mesh = new Mesh(name, scene)
-            var vdat = new VertexData()
-
-            vdat.positions = positions
-            vdat.indices = indices
-            vdat.normals = normals
-            vdat.colors = colors
-            vdat.uvs = uvs
-            vdat.applyToMesh(mesh)
-
-            // clobber babylon's bounding internals
-            mesh.doNotSyncBoundingInfo = true
-            mesh._updateBoundingInfo = () => mesh
-            mesh._refreshBoundingInfo = () => mesh
-
-            // meshes using a texture atlas need atlasIndices
-            if (atlasIndexes) {
-                mesh.setVerticesData('texAtlasIndices', atlasIndexes, false, 1)
-            }
-
-            // materials wrangled by external module
-            if (!ignoreMaterials) {
-                mesh.material = terrainMatManager.getMaterial(terrainID)
-            }
+            const mesh = this.createMeshFromArrs(
+                positions,
+                indices,
+                normals,
+                colors,
+                uvs,
+                atlasIndexes,
+                requestID,
+                terrainID,
+            )
 
             meshes.push(mesh)
         }
 
         return meshes
+    }
+
+    this.createMeshFromArrs = function createMeshFromArrs(
+        positions,
+        indices,
+        normals,
+        colors,
+        uvs,
+        atlasIndexes,
+        requestID,
+        terrainID,
+    ) {
+        var scene = noa.rendering.getScene()
+
+        // the mesh and vertexData object
+        var name = `chunk_${requestID}_${terrainID}`
+        var mesh = new Mesh(name, scene)
+        var vdat = new VertexData()
+
+        vdat.positions = positions
+        vdat.indices = indices
+        vdat.normals = normals
+        vdat.colors = colors
+        vdat.uvs = uvs
+        vdat.applyToMesh(mesh)
+
+        // clobber babylon's bounding internals
+        mesh.doNotSyncBoundingInfo = true
+        mesh._updateBoundingInfo = () => mesh
+        mesh._refreshBoundingInfo = () => mesh
+
+        // meshes using a texture atlas need atlasIndices
+        if (atlasIndexes) {
+            mesh.setVerticesData('texAtlasIndices', atlasIndexes, false, 1)
+        }
+
+        // materials wrangled by external module
+        if (!ignoreMaterials) {
+            mesh.material = terrainMatManager.getMaterial(terrainID)
+        }
+
+        return mesh
     }
 
     this.createMeshData = function createMeshData(
@@ -1304,8 +1337,184 @@ export function MeshBuilder(
 }
 
 
+// Uncomplete - doesn't handle chunks being removed from the world.
+// But takes about the same time to render these combined meshes (in a scene that has lots of vertical chunks to be combined so is best case for this algo)
+// This doesn't take into account the extra time constructing the combined meshes takes.
+// So probably not worth exploring this further.
+
+// Todo check we don't rebuild if a chunk has no vertice data
+class ColumnMeshesWrapper {
+    columnTerrainMeshes = {}
+
+    noa
+    x
+    z
+    constructor(noa, meshBuilder, x, z) {
+        this.noa = noa
+        this.meshBuilder = meshBuilder
+        this.x = x
+        this.z = z
+    }
+
+    receivedChunkVertexData(chunkY, vertexData) {
+        // const columnChunks = this.noa.world._storage.getChunksByColumn(this.x, this.z)
+        for (const data of vertexData) {
+            const terrainID = data.terrainID
+            if (!this.columnTerrainMeshes[terrainID]) {
+                this.columnTerrainMeshes[terrainID] = new ColumnTerrainMesh(this.noa, terrainID, this.meshBuilder, this.x, this.z)
+            }
+
+            this.columnTerrainMeshes[terrainID].updateTerrainWithData(chunkY, data)
+        }
+    }
 
 
+    // addMeshesToScene(meshes) {
+    //     meshes.forEach((mesh) => {
+    //         this.noa.rendering.addMeshToScene(mesh, true, chunk.pos)
+    //         mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
+    //     })
+    // }
+
+    chunkRemoved(chunkY) {
+
+    }
+
+    // updateTerrainWithData(terrainID, chunkY, )
+}
+
+class ColumnTerrainMesh {
+    /**
+     * @type {Record<number, {startFace, numFaces}>}
+     */
+    yChunkVertexDatas = {}
+
+    mesh = null
+    meshLowestChunkY = 0
+
+    constructor(noa, terrainID, meshBuilder, x, z) {
+        this.noa = noa
+        this.terrainID = terrainID
+        this.meshBuilder = meshBuilder
+        this.x = x
+        this.z = z
+    }
+
+    getLowestChunkY() {
+        let lowest = 1000000
+        for (const y in this.yChunkVertexDatas) {
+            lowest = Math.min(lowest, y)
+        }
+        return lowest
+    }
+
+    updateTerrainWithData(chunkY, data) {
+        const chunkYStr = chunkY.toString()
+        let nf = 0 // numFaces
+        if (this.mesh) {
+            for (const y in this.yChunkVertexDatas) {
+                if (y !== chunkYStr) {
+                    nf += this.yChunkVertexDatas[y].numFaces
+                }
+            }
+        }
+
+        const currChunkFaces = data.positions.length/12
+        nf += currChunkFaces
+
+        const indices = new Uint16Array(nf * 6)
+        const positions = new Float32Array(nf * 12)
+        const normals = new Float32Array(nf * 12)
+        const colors = new Float32Array(nf * 16)
+        const uvs = new Float32Array(nf * 8)
+        let atlasIndexes
+        if (data.atlasIndexes) atlasIndexes = new Float32Array(nf * 4)
+
+        let cs = this.noa.world._chunkSize;
+        const lowestChunkY = Math.min(this.getLowestChunkY(), chunkY)
+
+        let currFace = 0
+        if (this.mesh) {
+            // Copy across existing vertex data from other chunks in the column
+            const existingIndices = this.mesh.getIndices(false, false)
+            const existingPositions = this.mesh.getVerticesData(VertexBuffer.PositionKind, false, false)
+            const existingNormals = this.mesh.getVerticesData(VertexBuffer.NormalKind, false, false)
+            const existingColors = this.mesh.getVerticesData(VertexBuffer.ColorKind, false, false)
+            const existingUvs = this.mesh.getVerticesData(VertexBuffer.UVKind, false, false)
+            let existingAtlasIndexes = atlasIndexes ? this.mesh.getVerticesData('texAtlasIndices', false, false) : undefined
+
+            for (const y in this.yChunkVertexDatas) {
+                if (y !== chunkYStr) {
+                    const {startFace, numFaces} = this.yChunkVertexDatas[y]
+                    this.copyToArrOffset(existingIndices, indices, startFace*6, currFace*6, startFace*4, currFace*4, numFaces*6)
+
+                    const prevOffset = y*cs - this.meshLowestChunkY*cs
+                    const currOffset = y*cs - lowestChunkY*cs
+                    this.copyPosArrYOffset(existingPositions, positions, startFace*12, currFace*12, prevOffset, currOffset,numFaces*12)
+
+                    this.copyToArr(existingNormals, normals, startFace*12, currFace*12, numFaces*12)
+                    this.copyToArr(existingColors, colors, startFace*16, currFace*16, numFaces*16)
+                    this.copyToArr(existingUvs, uvs, startFace*8, currFace*8, numFaces*8)
+                    if (atlasIndexes) this.copyToArr(existingAtlasIndexes, atlasIndexes, startFace*4, currFace*4, numFaces*4)
+
+                    this.yChunkVertexDatas[y].startFace = currFace
+                    currFace += numFaces
+                }
+            }
+
+            this.mesh.dispose()
+        }
+
+        this.copyToArrOffset(data.indices, indices, 0, currFace*6, 0, currFace*4, currChunkFaces*6)
+        const currOffset = chunkY*cs - lowestChunkY*cs
+        this.copyPosArrYOffset(data.positions, positions, 0, currFace*12, 0, currOffset, currChunkFaces*12)
+        this.copyToArr(data.normals, normals, 0, currFace*12, currChunkFaces*12)
+        this.copyToArr(data.colors, colors, 0, currFace*16, currChunkFaces*16)
+        this.copyToArr(data.uvs, uvs, 0, currFace*8, currChunkFaces*8)
+        if (atlasIndexes) this.copyToArr(data.atlasIndexes, atlasIndexes, 0, currFace*4, currChunkFaces*4)
+
+        this.yChunkVertexDatas[chunkY] = {
+            startFace: currFace,
+            numFaces: currChunkFaces,
+        }
+        this.meshLowestChunkY = lowestChunkY
+
+        const mesh = this.meshBuilder.createMeshFromArrs(
+            positions,
+            indices,
+            normals,
+            colors,
+            uvs,
+            atlasIndexes,
+            data.requestID,
+            this.terrainID,
+        )
+        this.mesh = mesh
+
+        this.noa.rendering.addMeshToScene(mesh, true, [this.x*cs, lowestChunkY*cs, this.z*cs])
+        mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
+    }
+
+    copyToArr(fromArr, toArr, fromIdx, toIdx, num) {
+        for (let i = 0; i < num; i++) {
+            toArr[toIdx + i] = fromArr[fromIdx + i]
+        }
+    }
+
+    copyToArrOffset(fromArr, toArr, fromIdx, toIdx, fromOffset, toOffset, num) {
+        for (let i = 0; i < num; i++) {
+            toArr[toIdx + i] = fromArr[fromIdx + i]-fromOffset+toOffset
+        }
+    }
+
+    copyPosArrYOffset(fromArr, toArr, fromIdx, toIdx, fromYOffset, toYOffset, num) {
+        for (let i = 0; i < num; i += 3) {
+            toArr[toIdx+i] = fromArr[fromIdx+i]
+            toArr[toIdx+i+1] = fromArr[fromIdx+i+1]-fromYOffset+toYOffset
+            toArr[toIdx+i+2] = fromArr[fromIdx+i+2]
+        }
+    }
+}
 
 
 

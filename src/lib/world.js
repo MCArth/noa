@@ -6,7 +6,7 @@
 
 import EventEmitter from 'events'
 import Chunk, { createVoxelArray } from './chunk'
-import { LocationQueue, ChunkStorage, locationHasher, loopForTime } from './util'
+import {LocationQueue, ChunkStorage, locationHasher, loopForTime, ColumnStorage} from './util'
 import { makeProfileHook } from './util'
 
 var PROFILE_EVERY = 0               // ticks
@@ -147,6 +147,8 @@ export class World extends EventEmitter {
         // i.e. two chunks that far apart can't be loaded at the same time
         /** @internal */
         this._storage = new ChunkStorage()
+
+        this._columnStorage = new ColumnStorage()
 
         // coordinate converter functions - default versions first:
         var cs = this._chunkSize
@@ -880,6 +882,7 @@ function setChunkData(world, reqID, array, userData, fillVoxelID) {
         var size = world._chunkSize
         chunk = new Chunk(world.noa, reqID, i, j, k, size, array, userData, fillVoxelID)
         world._storage.storeChunkByIndexes(i, j, k, chunk)
+        world._columnStorage.storeChunkInColumn(i, k, chunk)
         world.noa.rendering.prepareChunkForRendering(chunk)
         world.emit('chunkAdded', chunk)
     } else {
@@ -908,6 +911,7 @@ function removeChunk(world, i, j, k) {
     }
 
     world._storage.removeChunkByIndexes(i, j, k)
+    world._columnStorage.removeChunkInColumn(i, j, k)
     world._chunksKnown.remove(i, j, k)
     world._chunksToMesh.remove(i, j, k)
     world._chunksToMeshFirst.remove(i, j, k)

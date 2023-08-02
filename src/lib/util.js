@@ -145,6 +145,11 @@ export function locationHasher(i, j, k) {
         | ((k & 1023) << 20)
 }
 
+export function columnHasher(i, j) {
+    return (i & 32767)
+        | ((j & 32767) << 15)
+}
+
 
 
 /*
@@ -168,6 +173,54 @@ export function ChunkStorage() {
     }
 }
 
+export function ColumnStorage() {
+    const columnHash = {}
+
+    // exposed API - getting and setting
+    this.storeChunkInColumn = (i, k, chunk) => {
+        const columnId = columnHasher(i, k)
+        if (!columnHash[columnId]) {
+            columnHash[columnId] = {
+                chunks: [],
+                columnMeshesWrapper: null,
+            }
+        }
+        columnHash[columnId].chunks.push(chunk)
+    }
+    this.removeChunkInColumn = (i, j, k) => {
+        const columnId = columnHasher(i, k)
+        const columnInfo = columnHash[columnId];
+        if (columnInfo) {
+            const idx = columnInfo.chunks.findIndex((chunk) => {
+                return chunk.i === i && chunk.j === j && chunk.k === k
+            })
+            if (idx >= 0) {
+                columnInfo.chunks.splice(idx, 1)
+            }
+
+            if (columnInfo.chunks.length === 0) {
+                delete columnHash[columnId]
+            }
+        }
+    }
+
+    this.getChunksByColumn = (i, k) => {
+        return columnHash[columnHasher(i, k)]?.chunks ?? []
+    }
+
+    this.getColumnMeshesWrapper = (i, k) => {
+        return columnHash[columnHasher(i, k)]?.columnMeshesWrapper ?? null
+    }
+    this.setColumnMeshesWrapper = (i, k, meshesWrapper) => {
+        const columnId = columnHasher(i, k)
+        let columnInfo = columnHash[columnId];
+        if (!columnInfo) {
+            console.error("Tried to store column meshesWrapper for non-existing column")
+            return
+        }
+        columnInfo.columnMeshesWrapper = meshesWrapper
+    }
+}
 
 
 

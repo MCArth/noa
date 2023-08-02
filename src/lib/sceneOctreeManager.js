@@ -8,7 +8,7 @@ import { Octree } from '@babylonjs/core/Culling/Octrees/octree'
 import { OctreeBlock } from '@babylonjs/core/Culling/Octrees/octreeBlock'
 import { OctreeSceneComponent } from '@babylonjs/core/Culling/Octrees/octreeSceneComponent'
 
-import { locationHasher, removeUnorderedListItem } from './util'
+import {columnHasher, locationHasher, removeUnorderedListItem} from './util'
 
 
 /*
@@ -59,6 +59,7 @@ export class SceneOctreeManager {
             var cj = Math.floor(pos[1] / bs)
             var ck = Math.floor(pos[2] / bs)
             var mapKey = locationHasher(ci, cj, ck)
+            // var mapKey = columnHasher(ci, ck)
 
             // get or create octreeBlock
             var block = octBlocksHash[mapKey]
@@ -119,8 +120,9 @@ export class SceneOctreeManager {
         }
 
         var makeOctreeBlock = (minPt, size) => {
-            var min = new Vector3(minPt[0], minPt[1], minPt[2])
-            var max = new Vector3(minPt[0] + size, minPt[1] + size, minPt[2] + size)
+            const yBlockDim = 10000000
+            var min = new Vector3(minPt[0], -yBlockDim, minPt[2])
+            var max = new Vector3(minPt[0] + size, yBlockDim, minPt[2] + size)
             return new OctreeBlock(min, max, undefined, undefined, undefined, NOP)
         }
 
