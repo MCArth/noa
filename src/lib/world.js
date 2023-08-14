@@ -385,12 +385,12 @@ World.prototype.manuallyLoadChunk = function (x, y, z) {
 }
 var manualErr = 'Set `noa.world.manuallyControlChunkLoading` if you need this API'
 
-function posWithinRect(pos, [lx, ly, lz, hx, hy, hz]) {
-    return pos[0] >= lx && pos[1] >= ly && pos[2] >= lz && pos[0] <= hx && pos[1] <= hy && pos[2] <= hz
+function posWithinRect(x, y, z, [lx, ly, lz, hx, hy, hz]) {
+    return x >= lx && y >= ly && z >= lz && x <= hx && y <= hy && z <= hz
 }
 
-export function posSatisfiesModifyConstraints(pos, idAtPos, coordSet, oppCoordSet, typeSet, oppTypeSet, rectList, oppRectList, defaultReturn) {
-    const posId = pos.join('|')
+export function posSatisfiesModifyConstraints(x, y, z, idAtPos, coordSet, oppCoordSet, typeSet, oppTypeSet, rectList, oppRectList, defaultReturn) {
+    const posId = `${x}|${y}|${z}`
     if (coordSet.has(posId)) {
         return defaultReturn
     }
@@ -399,12 +399,12 @@ export function posSatisfiesModifyConstraints(pos, idAtPos, coordSet, oppCoordSe
     }
 
     for (const rect of rectList) {
-        if (posWithinRect(pos, rect)) {
+        if (posWithinRect(x, y, z, rect)) {
             return defaultReturn
         }
     }
     for (const rect of oppRectList) {
-        if (posWithinRect(pos, rect)) {
+        if (posWithinRect(x, y, z, rect)) {
             return !defaultReturn
         }
     }
@@ -420,17 +420,16 @@ export function posSatisfiesModifyConstraints(pos, idAtPos, coordSet, oppCoordSe
 }
 
 /**
- * Get whether the player is allowed to Change a given block
- * @param {*} pos 
- */
-World.prototype.canChangeBlock = function (pos) {
+ * Get whether the player is allowed to Change a given block 
+ * */
+World.prototype.canChangeBlock = function (x, y, z) {
     // if can't Change then it must be explicitly allowed
     if (!this.noa.serverSettings.canChange) {
-        return posSatisfiesModifyConstraints(pos, this.getBlockID(pos[0], pos[1], pos[2]), this.canChangeBlockCoord, this.cantChangeBlockCoord, this.canChangeBlockType, this.cantChangeBlockType, this.canChangeBlockRect, this.cantChangeBlockRect, true)
+        return posSatisfiesModifyConstraints(x, y, z, this.getBlockID(x, y, z), this.canChangeBlockCoord, this.cantChangeBlockCoord, this.canChangeBlockType, this.cantChangeBlockType, this.canChangeBlockRect, this.cantChangeBlockRect, true)
     }
     // can Change - could be explicitly disallowed
     else {
-        return posSatisfiesModifyConstraints(pos, this.getBlockID(pos[0], pos[1], pos[2]), this.cantChangeBlockCoord, this.canChangeBlockCoord, this.cantChangeBlockType, this.canChangeBlockType, this.cantChangeBlockRect, this.canChangeBlockRect, false)
+        return posSatisfiesModifyConstraints(x, y, z, this.getBlockID(x, y, z), this.cantChangeBlockCoord, this.canChangeBlockCoord, this.cantChangeBlockType, this.canChangeBlockType, this.cantChangeBlockRect, this.canChangeBlockRect, false)
     }
 }
 

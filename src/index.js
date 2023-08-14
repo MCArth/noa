@@ -252,8 +252,8 @@ export class Engine extends EventEmitter {
             this.defaultBlockHighlightFunction = (tgt) => {
                 if (!tgt
                     || (!this.serverSettings.canChange
-                        && !this.world.canChangeBlock(tgt.position)
-                        && !this.world.canChangeBlock(tgt.adjacent))
+                        && !this.world.canChangeBlock(tgt.position[0], tgt.position[1], tgt.position[2])
+                        && !this.world.canChangeBlock(tgt.adjacent[0], tgt.adjacent[1], tgt.adjacent[2]))
                     || (this.entities.hasComponent(this.playerEntity, 'heldItem')
                         && this.entities.getState(this.playerEntity, 'heldItem').heldItem.canPlaceOrBreakBlock === false
                     )
