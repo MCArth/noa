@@ -227,7 +227,7 @@ World.prototype.getBlockSolidity = function (x, y, z) {
     }
 
     for (var rect of this.walkThroughRect) {
-        if (posWithinRect([x, y, z], rect)) {
+        if (posWithinRect(x, y, z, rect)) {
             return false
         }
     }
