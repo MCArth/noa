@@ -792,8 +792,8 @@ function deprecateStuff(noa) {
     ver = '0.29'
     dep(noa, '_constants', 'removed, voxel IDs are no longer packed with bit flags')
     ver = '0.30'
-    dep(noa, '_tickRate', 'tickRate is now at `noa.tickRate`')
-    dep(noa.container, '_tickRate', 'tickRate is now at `noa.tickRate`')
+    // dep(noa, '_tickRate', 'tickRate is now at `noa.tickRate`') // Bloxd comment since bromus hack uses this being defined to inject itself
+    // dep(noa.container, '_tickRate', 'tickRate is now at `noa.tickRate`') // Bloxd comment since bromus hack uses this being defined to inject itself
     ver = '0.31'
     dep(noa.world, 'chunkSize', 'effectively an internal, so changed to `_chunkSize`')
     dep(noa.world, 'chunkAddDistance', 'set this with `noa.world.setAddRemoveDistance`')
