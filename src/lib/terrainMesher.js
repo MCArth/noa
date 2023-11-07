@@ -971,7 +971,7 @@ class NoDataNdchunkPool {
     get(fillWithData) {
         if (this.arr.length === 0) {
             this.arr.push(
-                ndarray(new Uint16Array(), [this.cs, this.cs, this.cs]) // Initialise with Uint16Array so the ndarray is constructed properly
+                ndarray(new Uint16Array(), [this.cs, this.cs, this.cs]) // Initialise with zero-length Uint16Array so the ndarray is constructed properly
             )
         }
 	    let ndArr = this.arr.pop();

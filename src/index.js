@@ -766,38 +766,39 @@ function pickResultIntoBlockInfo(noa, pickResult, blockInfoObj) {
 
 function deprecateStuff(noa) {
     var ver = `0.27`
-    var dep = (loc, name, msg) => {
-        var throwFn = () => { throw new Error(`This property changed in ${ver} - ${msg}`) }
-        Object.defineProperty(loc, name, { get: throwFn, set: throwFn })
-    }
-    dep(noa, 'getPlayerEyePosition', 'to get the camera/player offset see API docs for `noa.camera.cameraTarget`')
-    dep(noa, 'setPlayerEyePosition', 'to set the camera/player offset see API docs for `noa.camera.cameraTarget`')
-    dep(noa, 'getPlayerPosition', 'use `noa.ents.getPosition(noa.playerEntity)` or similar')
-    dep(noa, 'getCameraVector', 'use `noa.camera.getDirection`')
-    dep(noa, 'getPlayerMesh', 'use `noa.ents.getMeshData(noa.playerEntity).mesh` or similar')
-    dep(noa, 'playerBody', 'use `noa.ents.getPhysicsBody(noa.playerEntity)`')
-    dep(noa.rendering, 'zoomDistance', 'use `noa.camera.zoomDistance`')
-    dep(noa.rendering, '_currentZoom', 'use `noa.camera.currentZoom`')
-    dep(noa.rendering, '_cameraZoomSpeed', 'use `noa.camera.zoomSpeed`')
-    dep(noa.rendering, 'getCameraVector', 'use `noa.camera.getDirection`')
-    dep(noa.rendering, 'getCameraPosition', 'use `noa.camera.getLocalPosition`')
-    dep(noa.rendering, 'getCameraRotation', 'use `noa.camera.heading` and `noa.camera.pitch`')
-    dep(noa.rendering, 'setCameraRotation', 'to customize camera behavior see API docs for `noa.camera`')
+    // var dep = (loc, name, msg) => {
+    //     var throwFn = () => { throw new Error(`This property changed in ${ver} - ${msg}`) }
+    //     Object.defineProperty(loc, name, { get: throwFn, set: throwFn })
+    // }
+    // dep(noa, 'getPlayerEyePosition', 'to get the camera/player offset see API docs for `noa.camera.cameraTarget`')
+    // dep(noa, 'setPlayerEyePosition', 'to set the camera/player offset see API docs for `noa.camera.cameraTarget`')
+    // dep(noa, 'getPlayerPosition', 'use `noa.ents.getPosition(noa.playerEntity)` or similar') // Bloxd comment since vape client hack uses this being defined to inject itself.
+    // dep(noa, 'getCameraVector', 'use `noa.camera.getDirection`')
+    // dep(noa, 'getPlayerMesh', 'use `noa.ents.getMeshData(noa.playerEntity).mesh` or similar')
+    // dep(noa, 'playerBody', 'use `noa.ents.getPhysicsBody(noa.playerEntity)`')
+
+    // dep(noa.rendering, 'zoomDistance', 'use `noa.camera.zoomDistance`')
+    // dep(noa.rendering, '_currentZoom', 'use `noa.camera.currentZoom`')
+    // dep(noa.rendering, '_cameraZoomSpeed', 'use `noa.camera.zoomSpeed`')
+    // dep(noa.rendering, 'getCameraVector', 'use `noa.camera.getDirection`')
+    // dep(noa.rendering, 'getCameraPosition', 'use `noa.camera.getLocalPosition`')
+    // dep(noa.rendering, 'getCameraRotation', 'use `noa.camera.heading` and `noa.camera.pitch`')
+    // dep(noa.rendering, 'setCameraRotation', 'to customize camera behavior see API docs for `noa.camera`')
     ver = '0.28'
-    dep(noa.rendering, 'makeMeshInstance', 'removed, use Babylon\'s `mesh.createInstance`')
-    dep(noa.world, '_maxChunksPendingCreation', 'use `maxChunksPendingCreation` (no "_")')
-    dep(noa.world, '_maxChunksPendingMeshing', 'use `maxChunksPendingMeshing` (no "_")')
-    dep(noa.world, '_maxProcessingPerTick', 'use `maxProcessingPerTick` (no "_")')
-    dep(noa.world, '_maxProcessingPerRender', 'use `maxProcessingPerRender` (no "_")')
+    // dep(noa.rendering, 'makeMeshInstance', 'removed, use Babylon\'s `mesh.createInstance`')
+    // dep(noa.world, '_maxChunksPendingCreation', 'use `maxChunksPendingCreation` (no "_")')
+    // dep(noa.world, '_maxChunksPendingMeshing', 'use `maxChunksPendingMeshing` (no "_")')
+    // dep(noa.world, '_maxProcessingPerTick', 'use `maxProcessingPerTick` (no "_")')
+    // dep(noa.world, '_maxProcessingPerRender', 'use `maxProcessingPerRender` (no "_")')
     ver = '0.29'
-    dep(noa, '_constants', 'removed, voxel IDs are no longer packed with bit flags')
+    // dep(noa, '_constants', 'removed, voxel IDs are no longer packed with bit flags')
     ver = '0.30'
     // dep(noa, '_tickRate', 'tickRate is now at `noa.tickRate`') // Bloxd comment since bromus hack uses this being defined to inject itself
     // dep(noa.container, '_tickRate', 'tickRate is now at `noa.tickRate`') // Bloxd comment since bromus hack uses this being defined to inject itself
     ver = '0.31'
-    dep(noa.world, 'chunkSize', 'effectively an internal, so changed to `_chunkSize`')
-    dep(noa.world, 'chunkAddDistance', 'set this with `noa.world.setAddRemoveDistance`')
-    dep(noa.world, 'chunkRemoveDistance', 'set this with `noa.world.setAddRemoveDistance`')
+    // dep(noa.world, 'chunkSize', 'effectively an internal, so changed to `_chunkSize`')
+    // dep(noa.world, 'chunkAddDistance', 'set this with `noa.world.setAddRemoveDistance`')
+    // dep(noa.world, 'chunkRemoveDistance', 'set this with `noa.world.setAddRemoveDistance`')
 }
 
 
