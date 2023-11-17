@@ -300,7 +300,7 @@ World.prototype.isBoxUnobstructed = function (box) {
  * take a fast path through some initialization steps.
  */
 World.prototype.setChunkData = function (id, array, userData = null, fillVoxelID = -1) {
-    setChunkData(this, id, array, userData, fillVoxelID)
+    return setChunkData(this, id, array, userData, fillVoxelID) // bloxd change - return whether chunk was saved
 }
 
 
@@ -868,10 +868,10 @@ function setChunkData(world, reqID, array, userData, fillVoxelID) {
     var worldName = arr.join('|')
     world._chunksPending.remove(i, j, k)
     // discard data if it's for a world that's no longer current
-    if (worldName !== world.noa.worldName) return
+    if (worldName !== world.noa.worldName) return false // bloxd change - return whether chunk was saved
     // discard if chunk is no longer needed
-    if (!world._chunksKnown.includes(i, j, k)) return
-    if (world._chunksToRemove.includes(i, j, k)) return
+    if (!world._chunksKnown.includes(i, j, k)) return false // bloxd change - return whether chunk was saved
+    if (world._chunksToRemove.includes(i, j, k)) return false // bloxd change - return whether chunk was saved
 
     var chunk = world._storage.getChunkByIndexes(i, j, k)
     if (!chunk) {
@@ -890,6 +890,8 @@ function setChunkData(world, reqID, array, userData, fillVoxelID) {
     updateNeighborsOfChunk(world, i, j, k, chunk)
 
     profile_queues_hook('receive')
+
+    return true // bloxd change - return whether chunk was saved
 }
 
 
