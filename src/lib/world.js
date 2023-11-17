@@ -351,7 +351,7 @@ World.prototype.setAddRemoveDistance = function (addDist = 2, remDist = 3) {
  * the game client received updated data from a server). 
  * The engine will mark all affected chunks for disposal, and will later emit 
  * new `worldDataNeeded` events (if the chunk is still in draw range).
- * Note that chunks invalidated this way will not emit a `chunkBeingRemoved` event 
+ * // Bloxd change. Noa comment no longer true due to bloxd changes: Note that chunks invalidated this way will not emit a `chunkBeingRemoved` event
  * for the client to save data from.
  */
 World.prototype.invalidateVoxelsInAABB = function (box) {
@@ -729,11 +729,10 @@ function invalidateChunksInBox(world, box) {
     })
 
     // bloxd start
-    while (!processRemoveQueue(world)) { // If we change to not do this, we will need to change resetMap in bloxd resetChunk
+    while (!processRemoveQueue(world)) { // If we change to not do this, we will need to change ToClientMessage.resetChunk handler to call bloxd.removingChunk
     }
-    // bloxd end
-
     world._chunkAddSearchFrom = 0 // bloxd fix - add this in so we get new chunk requests when calling this from resetChunk
+    // bloxd end
 }
 
 
