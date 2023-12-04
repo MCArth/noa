@@ -26,7 +26,8 @@ import ObjectMesher from './lib/objectMesher'
 import TerrainMesher from './lib/terrainMesher'
 import { locationHasher } from './lib/util'
 import { makeProfileHook } from './lib/util'
-
+import { Mesh } from '@babylonjs/core/Meshes/mesh'
+import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData'
 
 import packageJSON from '../package.json'
 import { TerrainMatManager } from './lib/terrainMaterials'
@@ -306,7 +307,7 @@ export class Engine extends EventEmitter {
         */
 
         /** @internal */
-        this._terrainMesher = new TerrainMesher(this, this._terrainMatManager, opts)
+        this._terrainMesher = new TerrainMesher(this, this._terrainMatManager, Mesh, VertexData, opts)
 
         /** @internal */
         this._objectMesher = new ObjectMesher(this)

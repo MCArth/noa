@@ -4,8 +4,6 @@
 */
 
 import ndarray from 'ndarray'
-import { Mesh } from '@babylonjs/core/Meshes/mesh'
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData'
 import { makeProfileHook } from './util'
 import Chunk from './chunk'
 
@@ -36,7 +34,7 @@ var ignoreMaterials = false
  * @param {import('../index').Engine} noa
  * @param {import('./terrainMaterials').TerrainMatManager} terrainMatManager
  */
-export default function TerrainMesher(noa, terrainMatManager, opts) {
+export default function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, BabylonVertexDataCtor, opts) {
     // internally expose the default flat material used for untextured terrain
     this._defaultMaterial = terrainMatManager._defaultMat
 
@@ -89,6 +87,8 @@ export default function TerrainMesher(noa, terrainMatManager, opts) {
                 revAoVal,
                 atlasIndexLookup,
                 matColorLookup,
+                BabylonMeshCtor,
+                BabylonVertexDataCtor
             )
         
             worker = opts.getMeshingWorker()
@@ -125,7 +125,7 @@ export default function TerrainMesher(noa, terrainMatManager, opts) {
                     // add meshes to scene and finish
                     meshes.forEach((mesh) => {
                         noa.rendering.addMeshToScene(mesh, true, chunk.pos)
-                        mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
+                        mesh.cullingStrategy = BabylonMeshCtor.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
                         chunk._terrainMeshes.push(mesh)
                     })
                 }
@@ -224,7 +224,7 @@ export default function TerrainMesher(noa, terrainMatManager, opts) {
             // add meshes to scene and finish
             meshes.forEach((mesh) => {
                 noa.rendering.addMeshToScene(mesh, true, chunk.pos)
-                mesh.cullingStrategy = Mesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
+                mesh.cullingStrategy = BabylonMeshCtor.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
                 chunk._terrainMeshes.push(mesh)
             })
         }
@@ -1039,6 +1039,8 @@ export function MeshBuilder(
     revAoVal,
     atlasIndexLookup,
     matColorLookup,
+    BabylonMeshCtor=null,
+    BabylonVertexDataCtor=null,
 ) {
 
 
@@ -1061,8 +1063,8 @@ export function MeshBuilder(
 
             // the mesh and vertexData object
             var name = `chunk_${requestID}_${terrainID}`
-            var mesh = new Mesh(name, scene)
-            var vdat = new VertexData()
+            var mesh = new BabylonMeshCtor(name, scene)
+            var vdat = new BabylonVertexDataCtor()
 
             vdat.positions = positions
             vdat.indices = indices
