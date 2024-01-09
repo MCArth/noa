@@ -382,6 +382,7 @@ World.prototype.manuallyLoadChunk = function (x, y, z) {
     this._chunksToMesh.remove(i, j, k)
     this._chunksToRequest.remove(i, j, k)
     this._chunksToMeshFirst.remove(i, j, k)
+    // Bloxd comment - maybe also need world._chunksPending.remove(i, j, k)
 }
 var manualErr = 'Set `noa.world.manuallyControlChunkLoading` if you need this API'
 
@@ -726,6 +727,7 @@ function invalidateChunksInBox(world, box) {
         world._chunksToMesh.remove(loc[0], loc[1], loc[2])
         world._chunksToRequest.remove(loc[0], loc[1], loc[2])
         world._chunksToMeshFirst.remove(loc[0], loc[1], loc[2])
+        world._chunksPending.remove(loc[0], loc[1], loc[2]) // bloxd fix remove items from _chunksPending 
     })
 
     // bloxd start
