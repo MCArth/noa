@@ -376,13 +376,20 @@ World.prototype.manuallyLoadChunk = function (x, y, z) {
  * @param x, y, z
  */
  World.prototype.manuallyUnloadChunk = function (x, y, z) {
-    if (!this.manuallyControlChunkLoading) throw manualErr
+    // if (!this.manuallyControlChunkLoading) throw manualErr // Bloxd change - comment this so we can use when we want!
     var [i, j, k] = this._coordsToChunkIndexes(x, y, z)
     this._chunksToRemove.add(i, j, k)
     this._chunksToMesh.remove(i, j, k)
     this._chunksToRequest.remove(i, j, k)
     this._chunksToMeshFirst.remove(i, j, k)
-    // Bloxd comment - maybe also need world._chunksPending.remove(i, j, k)
+
+    // bloxd start
+    this._chunksPending.remove(i, j, k)
+
+    while (!processRemoveQueue(this)) { // If we change to not do this, we will need to change ToClientMessage.resetChunk handler to call bloxd.removingChunk
+    }
+    this._chunkAddSearchFrom = 0 // bloxd fix - add this in so we get new chunk requests when calling this from resetChunk
+    // bloxd end
 }
 var manualErr = 'Set `noa.world.manuallyControlChunkLoading` if you need this API'
 
@@ -712,6 +719,7 @@ function findDistantChunksToRemove(world, ci, cj, ck) {
 
 
 // invalidate chunks overlapping the given AABB
+// Bloxd note - this function doesn't remove from chunksPending. Maybe use manuallyUnloadChunk instead 
 function invalidateChunksInBox(world, box) {
     var min = world._coordsToChunkIndexes(box.base[0], box.base[1], box.base[2])
     var max = world._coordsToChunkIndexes(box.max[0], box.max[1], box.max[2])
@@ -727,7 +735,7 @@ function invalidateChunksInBox(world, box) {
         world._chunksToMesh.remove(loc[0], loc[1], loc[2])
         world._chunksToRequest.remove(loc[0], loc[1], loc[2])
         world._chunksToMeshFirst.remove(loc[0], loc[1], loc[2])
-        world._chunksPending.remove(loc[0], loc[1], loc[2]) // bloxd fix remove items from _chunksPending 
+        // world._chunksPending.remove(loc[0], loc[1], loc[2]) // Bloxd note - this doesn't work since world._chunksKnown doesn't include pending chunks
     })
 
     // bloxd start
