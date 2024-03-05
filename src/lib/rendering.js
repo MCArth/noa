@@ -438,22 +438,22 @@ function updateCameraForRender(self) {
 
 function checkCameraEffect(self, id) {
     if (id === self._camLocBlock) return
-    if (id === 0) {
+    // BLOXD FIX START - fix camera effect not disappearing inside solid block without a getBlockFaceMaterial
+    var matId = self.noa.registry.getBlockFaceMaterial(id, 0)
+    if (id === 0 || !matId) {
         self._camScreen.setEnabled(false)
     } else {
-        var matId = self.noa.registry.getBlockFaceMaterial(id, 0)
-        if (matId) {
-            var matData = self.noa.registry.getMaterialData(matId)
-            var col = matData.color
-            var alpha = matData.alpha
-            if (col && alpha && alpha < 1) {
-                self._camScreenMat.diffuseColor.set(0, 0, 0)
-                self._camScreenMat.ambientColor.set(col[0], col[1], col[2])
-                self._camScreenMat.alpha = alpha
-                self._camScreen.setEnabled(true)
-            }
+        var matData = self.noa.registry.getMaterialData(matId)
+        var col = matData.color
+        var alpha = matData.alpha
+        if (col && alpha && alpha < 1) {
+            self._camScreenMat.diffuseColor.set(0, 0, 0)
+            self._camScreenMat.ambientColor.set(col[0], col[1], col[2])
+            self._camScreenMat.alpha = alpha
+            self._camScreen.setEnabled(true)
         }
     }
+    // BLOXD FIX END
     self._camLocBlock = id
 }
 
