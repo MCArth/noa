@@ -1,13 +1,9 @@
-/** 
- * @module 
- * @internal exclude this file from API docs 
-*/
 
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode'
-import '@babylonjs/core/Meshes/thinInstanceMesh'
 import { makeProfileHook } from './util'
+import '@babylonjs/core/Meshes/thinInstanceMesh'
+import { objectMeshFlag } from './rendering'
 
-export default ObjectMesher
 
 var PROFILE = 0
 
@@ -26,11 +22,14 @@ var PROFILE = 0
 */
 
 
-/** @param {import('../index').Engine} noa*/
-function ObjectMesher(noa) {
+/** 
+ * @internal
+ * @param {import('../index').Engine} noa
+*/
+export function ObjectMesher(noa) {
 
     // transform node for all instance meshes to be parented to
-    this.rootNode = new TransformNode('objectMeshRoot', noa.rendering._scene)
+    this.rootNode = new TransformNode('objectMeshRoot', noa.rendering.scene)
 
     // tracking rebase amount inside matrix data
     var rebaseOffset = [0, 0, 0]
@@ -40,6 +39,9 @@ function ObjectMesher(noa) {
 
     // mock object to pass to customMesh handler, to get transforms
     var transformObj = new TransformNode('')
+
+    // list of known base meshes
+    this.allBaseMeshes = []
 
     // internal storage of instance managers, keyed by ID
     // has check to dedupe by mesh, since babylon chokes on
@@ -54,9 +56,11 @@ function ObjectMesher(noa) {
                 return managers[id] = managers[id2]
             }
         }
+        this.allBaseMeshes.push(mesh)
+        if (!mesh.metadata) mesh.metadata = {}
+        mesh.metadata[objectMeshFlag] = true
         return managers[id] = new InstanceManager(noa, mesh)
     }
-
 
 
 
@@ -199,7 +203,9 @@ function ObjectMesher(noa) {
  * 
 */
 
+/** @param {import('../index').Engine} noa*/
 function InstanceManager(noa, mesh) {
+    this.noa = noa
     this.mesh = mesh
     this.buffer = null
     this.capacity = 0
@@ -213,8 +219,9 @@ function InstanceManager(noa, mesh) {
     // prepare mesh for rendering
     this.mesh.position.setAll(0)
     this.mesh.parent = noa._objectMesher.rootNode
-    this.mesh.isVisible = true
-    noa.rendering.addMeshToScene(this.mesh, false)
+    this.noa.rendering.addMeshToScene(this.mesh, false)
+    this.noa.emit('addingTerrainMesh', this.mesh)
+    this.mesh.isPickable = false
     this.mesh.doNotSyncBoundingInfo = true
     this.mesh.alwaysSelectAsActiveMesh = true
 }
@@ -225,7 +232,8 @@ InstanceManager.prototype.dispose = function () {
     if (this.disposed) return
     this.mesh.thinInstanceCount = 0
     this.setCapacity(0)
-    this.mesh.isVisible = false
+    this.noa.emit('removingTerrainMesh', this.mesh)
+    this.noa.rendering.setMeshVisibility(this.mesh, false)
     this.mesh = null
     this.keyToIndex = null
     this.locToKey = null

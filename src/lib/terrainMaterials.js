@@ -5,8 +5,6 @@ import { MaterialPluginBase } from '@babylonjs/core/Materials/materialPluginBase
 import { RawTexture2DArray } from '@babylonjs/core/Materials/Textures/rawTexture2DArray'
 
 /**
- * @module 
- * @internal exclude this file from API docs 
  * 
  * 
  *      This module creates and manages Materials for terrain meshes. 
@@ -14,6 +12,7 @@ import { RawTexture2DArray } from '@babylonjs/core/Materials/Textures/rawTexture
  *      the same material (and should thus be joined into a single mesh),
  *      and also creates the materials when needed.
  * 
+ * @internal
 */
 
 export class TerrainMatManager {
@@ -23,6 +22,8 @@ export class TerrainMatManager {
         // make a baseline default material for untextured terrain with no alpha
         this._defaultMat = noa.rendering.makeStandardMaterial('base-terrain')
         this._defaultMat.freeze()
+
+        this.allMaterials = [this._defaultMat]
 
         // internals
         this.noa = noa
@@ -54,6 +55,7 @@ export class TerrainMatManager {
         // create a mat object for it, if needed
         if (!(terrID in this._terrainIDtoMatObject)) {
             var mat = createTerrainMat(this, blockMatID)
+            this.allMaterials.push(mat)
             this._terrainIDtoMatObject[terrID] = mat
         }
         // cache results and done
@@ -158,9 +160,8 @@ function createTerrainMat(self, blockMatID = 0) {
             tex.hasAlpha = true
         }
     }
-    
-    mat.freeze()
 
+    mat.freeze()
     return mat
 }
 

@@ -1,13 +1,8 @@
-/** 
- * @module
- * @internal
- */
 
 import { LocationQueue } from './util'
 import ndarray from 'ndarray'
 
 
-export default Chunk
 
 
 /* 
@@ -29,14 +24,14 @@ export default Chunk
  */
 
 /** @param {import('../index').Engine} noa */
-function Chunk(noa, requestID, ci, cj, ck, size, dataArray, userData, fillVoxelID = -1) {
+export function Chunk(noa, requestID, ci, cj, ck, size, dataArray, userData, fillVoxelID = -1) {
     this.noa = noa
     this.isDisposed = false
 
     // voxel data and properties
     this.requestID = requestID     // id sent to game client
     this.voxels = dataArray
-    this.userData = userData
+    this.userData = userData // Bloxd change - init userData in chunk ctor
     this.i = ci
     this.j = cj
     this.k = ck
@@ -72,6 +67,7 @@ function Chunk(noa, requestID, ci, cj, ck, size, dataArray, userData, fillVoxelI
     this._timesMeshed = 0
 
     // location queue of voxels in this chunk with block handlers (assume it's rare)
+    /** @internal */
     this._blockHandlerLocs = new LocationQueue()
 
     // passes through voxel contents, calling block handlers etc.

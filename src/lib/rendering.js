@@ -1,13 +1,10 @@
-/** 
- * The Rendering class is found at [[Rendering | `noa.rendering`]].
- * @module noa.rendering
- */
 
 import glvec3 from 'gl-vec3'
+import { makeProfileHook } from './util'
 
 import { SceneOctreeManager } from './sceneOctreeManager'
 
-import { Scene } from '@babylonjs/core/scene'
+import { Scene, ScenePerformancePriority } from '@babylonjs/core/scene'
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera'
 import '@babylonjs/core/Materials/Textures/rawTexture' // Needed as side effect for bloxd glb code (I think)
 import '@babylonjs/core/Engines/Extensions/engine.renderTarget' // Not sure why a side effect from here is needed
@@ -18,14 +15,13 @@ import "@babylonjs/core/Materials/Textures/cubeTexture" // needed for skybox
 import {ParticleSystem} from '@babylonjs/core/Particles' // needed as side effect bloxd
 import { Engine } from '@babylonjs/core/Engines/engine'
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
-import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight'
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode'
 import { CreateLines } from '@babylonjs/core/Meshes/Builders/linesBuilder'
 import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder'
-import { makeProfileHook } from './util'
 
 
 
@@ -39,10 +35,10 @@ var defaults = {
     showFPS: false,
     antiAlias: true,
     clearColor: [0.8, 0.9, 1],
-    ambientColor: [1, 1, 1],
+    ambientColor: [0.5, 0.5, 0.5],
     lightDiffuse: [1, 1, 1],
     lightSpecular: [1, 1, 1],
-    groundLightColor: [0.5, 0.5, 0.5],
+    lightVector: [1, -1, 0.5],
     useAO: true,
     AOmultipliers: [0.93, 0.8, 0.5],
     reverseAOmultiplier: 1.0,
@@ -58,16 +54,16 @@ var defaults = {
  * Manages all rendering, and the BABYLON scene, materials, etc.
  * 
  * This module uses the following default options (from the options
- * object passed to the [[Engine]]):
+ * object passed to the {@link Engine}):
  * ```js
  * {
  *     showFPS: false,
  *     antiAlias: true,
  *     clearColor: [0.8, 0.9, 1],
- *     ambientColor: [1, 1, 1],
+ *     ambientColor: [0.5, 0.5, 0.5],
  *     lightDiffuse: [1, 1, 1],
  *     lightSpecular: [1, 1, 1],
- *     groundLightColor: [0.5, 0.5, 0.5],
+ *     lightVector: [1, -1, 0.5],
  *     useAO: true,
  *     AOmultipliers: [0.93, 0.8, 0.5],
  *     reverseAOmultiplier: 1.0,
@@ -78,13 +74,29 @@ var defaults = {
  * ```
 */
 
+// mesh metadata flags
+export const octreeBlock = 'noa_octree_block'
+export const inDynamicList = 'noa_in_dynamic_list'
+export const inOctreeBlock = 'noa_in_octree_block'
+
+export const terrainMeshFlag = 'noa_chunk_terrain_mesh'
+
+export const objectMeshFlag = "noa_object_base_mesh"
+
 function MeshMetadataType() {
     this.markAsDirtyOnRebase = false
     this.eId = null
     this.gltf = null // set by gltf importer
 
-    this._noaIsDynamicContent = false
-    this._noaContainingBlockId = undefined
+    this[addedToSceneFlag] = false
+
+    this[octreeBlock] = undefined
+    this[inDynamicList] = undefined
+    this[inOctreeBlock] = undefined
+
+    this[terrainMeshFlag] = undefined
+
+    this[objectMeshFlag] = undefined
 }
 
 export class Rendering {
@@ -112,14 +124,17 @@ export class Rendering {
         /** @internal */
         this.meshingCutoffTime = 6 // ms
 
-        // set up babylon scene
-        /** @internal */
-        this._scene = null
-        /** @internal */
-        this._engine = null
-        /** @internal */
-        this._octreeManager = null
-        this.initScene(canvas, opts)
+        /** the Babylon.js Engine object for the scene */
+        this.engine = null
+        /** the Babylon.js Scene object for the world */
+        this.scene = null
+        /** a Babylon.js DirectionalLight that is added to the scene */
+        this.light = null
+        /** the Babylon.js FreeCamera that renders the scene */
+        this.camera = null
+
+        // sets up babylon scene, lights, etc
+        this._initScene(canvas, opts)
 
         // bloxd start
         this.MeshMetadataType = MeshMetadataType
@@ -133,57 +148,67 @@ export class Rendering {
 
 
 
-    // Constructor helper - set up the Babylon.js scene and basic components
-    initScene(canvas, opts) {
+    /**
+     * Constructor helper - set up the Babylon.js scene and basic components
+     * @internal
+     */
+    _initScene(canvas, opts) {
 
         // init internal properties
         // bloxd change start use NullEngine on server
         // init internal properties
         if (process.env.REACT_APP_IS_CLIENT === 'true') {
-            this._engine = new Engine(canvas, opts.antiAlias, {
+            this.engine = new Engine(canvas, opts.antiAlias, {
                 preserveDrawingBuffer: opts.preserveDrawingBuffer,
             })
         }
         else {
-            this._engine = new NullEngine()
+            this.engine = new NullEngine()
         }
         // bloxd change end
-        this._scene = new Scene(this._engine)
-        var scene = this._scene
+        var scene = new Scene(this.engine)
+        this.scene = scene
         // remove built-in listeners
         scene.detachControl()
 
+        // this disables a few babylon features that noa doesn't use
+        scene.performancePriority = ScenePerformancePriority.Intermediate
+        scene.autoClear = true
+
         // octree manager class
         var blockSize = Math.round(opts.octreeBlockSize)
+        /** @internal */
         this._octreeManager = new SceneOctreeManager(this, blockSize)
 
         // camera, and a node to hold it and accumulate rotations
+        /** @internal */
         this._cameraHolder = new TransformNode('camHolder', scene)
-        this._camera = new FreeCamera('camera', new Vector3(0, 0, 0), scene)
-        this._camera.parent = this._cameraHolder
-        this._camera.minZ = .01
+        this.camera = new FreeCamera('camera', new Vector3(0, 0, 0), scene)
+        this.camera.parent = this._cameraHolder
+        this.camera.minZ = .01
 
         // plane obscuring the camera - for overlaying an effect on the whole view
+        /** @internal */
         this._camScreen = CreatePlane('camScreen', { size: 10 }, scene)
         this.addMeshToScene(this._camScreen)
         this._camScreen.position.z = .1
-        this._camScreen.parent = this._camera
-        this._camScreenMat = this.makeStandardMaterial('camscreenmat')
+        this._camScreen.parent = this.camera
+        /** @internal */
+        this._camScreenMat = this.makeStandardMaterial('camera_screen_mat')
         this._camScreen.material = this._camScreenMat
         this._camScreen.setEnabled(false)
         this._camScreenMat.freeze()
+        /** @internal */
         this._camLocBlock = 0
 
         // apply some defaults
-        var lightVec = new Vector3(0.1, 1, 0.3)
-        this._light = new HemisphericLight('light', lightVec, scene)
+        scene.clearColor = Color4.FromArray(opts.clearColor)
+        scene.ambientColor = Color3.FromArray(opts.ambientColor)
 
-        function arrToColor(a) { return new Color3(a[0], a[1], a[2]) }
-        scene.clearColor = Color4.FromColor3(arrToColor(opts.clearColor))
-        scene.ambientColor = arrToColor(opts.ambientColor)
-        this._light.diffuse = arrToColor(opts.lightDiffuse)
-        this._light.specular = arrToColor(opts.lightSpecular)
-        this._light.groundColor = arrToColor(opts.groundLightColor)
+        var lightVec = Vector3.FromArray(opts.lightVector)
+        this.light = new DirectionalLight('light', lightVec, scene)
+        this.light.diffuse = Color3.FromArray(opts.lightDiffuse)
+        this.light.specular = Color3.FromArray(opts.lightSpecular)
 
         // scene options
         scene.skipPointerMovePicking = true
@@ -199,7 +224,7 @@ export class Rendering {
 
 /** The Babylon `scene` object representing the game world. */
 Rendering.prototype.getScene = function () {
-    return this._scene
+    return this.scene
 }
 
 // per-tick listener for rendering-related stuff
@@ -216,12 +241,12 @@ Rendering.prototype.render = function () {
     profile_hook('start')
     updateCameraForRender(this)
     profile_hook('updateCamera')
-    this._engine.beginFrame()
+    this.engine.beginFrame()
     profile_hook('beginFrame')
-    this._scene.render()
+    this.scene.render()
     profile_hook('render')
     fps_hook()
-    this._engine.endFrame()
+    this.engine.endFrame()
     profile_hook('endFrame')
     profile_hook('end')
 }
@@ -235,9 +260,9 @@ Rendering.prototype.postRender = function () {
 
 /** @internal */
 Rendering.prototype.resize = function () {
-    this._engine.resize()
+    this.engine.resize()
     if (this.noa._paused && this.renderOnResize) {
-        this._scene.render()
+        this.scene.render()
     }
 }
 
@@ -265,23 +290,30 @@ var hlpos = []
 
 
 /**
- * Add a mesh to the scene's octree setup so that it renders. 
+ * Adds a mesh to the engine's selection/octree logic so that it renders.
  * 
  * @param mesh the mesh to add to the scene
- * @param isStatic pass in true if mesh never moves (i.e. change octree blocks)
+ * @param isStatic pass in true if mesh never moves (i.e. never changes chunks)
  * @param pos (optional) global position where the mesh should be
  * @param isPickable (optional) whether the mesh is pickable
  */
 Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = null, isPickable=false) {
-    // exit silently if mesh has already been added and not removed
-    if (this._octreeManager.includesMesh(mesh)) return
+    if (!mesh.metadata) {
+        mesh.metadata = new MeshMetadataType()
+    }
+
+    // if mesh is already added, just make sure it's visisble
+    if (mesh.metadata[addedToSceneFlag]) {
+        this._octreeManager.setMeshVisibility(mesh, true)
+        return
+    }
+    mesh.metadata[addedToSceneFlag] = true
 
     // find local position for mesh and move it there (unless it's parented)
     if (!mesh.parent) {
-        if (!pos) pos = [mesh.position.x, mesh.position.y, mesh.position.z]
-        var lpos = []
-        this.noa.globalToLocal(pos, null, lpos)
-        mesh.position.copyFromFloats(lpos[0], lpos[1], lpos[2])
+        if (!pos) pos = mesh.position.asArray()
+        var lpos = this.noa.globalToLocal(pos, null, [])
+        mesh.position.fromArray(lpos)
     }
 
     // save CPU by freezing terrain meshes
@@ -293,21 +325,35 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = nul
 
     // bloxd start
     mesh.isPickable = isPickable
-
-    if (!mesh.metadata) {
-        mesh.metadata = new MeshMetadataType()
-    }
     // bloxd end
 
     // add to the octree, and add dispose handler to remove it
     this._octreeManager.addMesh(mesh, isStatic, pos)
     mesh.onDisposeObservable.add(() => {
         this._octreeManager.removeMesh(mesh)
+        mesh.metadata[addedToSceneFlag] = false
     })
 }
+var addedToSceneFlag = 'noa_added_to_scene'
 
 
 
+
+/**
+ * Use this to toggle the visibility of a mesh without disposing it or
+ * removing it from the scene.
+ * 
+ * @param {import('@babylonjs/core/Meshes').Mesh} mesh
+ * @param {boolean} visible
+ */
+Rendering.prototype.setMeshVisibility = function (mesh, visible = false) {
+    if (!mesh.metadata) mesh.metadata = {}
+    if (mesh.metadata[addedToSceneFlag]) {
+        this._octreeManager.setMeshVisibility(mesh, visible)
+    } else {
+        if (visible) this.addMeshToScene(mesh)
+    }
+}
 
 
 
@@ -317,9 +363,10 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic = false, pos = nul
 /**
  * Create a default standardMaterial:      
  * flat, nonspecular, fully reflects diffuse and ambient light
+ * @returns {StandardMaterial}
  */
 Rendering.prototype.makeStandardMaterial = function (name) {
-    var mat = new StandardMaterial(name, this._scene)
+    var mat = new StandardMaterial(name, this.scene)
     mat.specularColor.copyFromFloats(0, 0, 0)
     mat.ambientColor.copyFromFloats(1, 1, 1)
     mat.diffuseColor.copyFromFloats(1, 1, 1)
@@ -385,7 +432,7 @@ Rendering.prototype.disposeChunkForRendering = function (chunk) {
 Rendering.prototype._rebaseOrigin = function (delta) {
     var dvec = new Vector3(delta[0], delta[1], delta[2])
 
-    this._scene.meshes.forEach(mesh => {
+    this.scene.meshes.forEach(mesh => {
         // parented meshes don't live in the world coord system
         // Skip __root__ nodes to work around a babylonjs issue where not fully loaded glb meshes exist in the meshes array and moving them breaks things. (Happens with gun meshes). 
         if (mesh.parent || mesh.name === "__root__") {
@@ -420,7 +467,7 @@ function updateCameraForRender(self) {
     self._cameraHolder.position.copyFromFloats(tgtLoc[0], tgtLoc[1], tgtLoc[2])
     self._cameraHolder.rotation.x = cam.pitch
     self._cameraHolder.rotation.y = cam.heading
-    self._camera.position.z = -cam.currentZoom
+    self.camera.position.z = -cam.currentZoom
 
     // applies screen effect when camera is inside a transparent voxel
     var cloc = cam._localGetPosition()
@@ -466,8 +513,8 @@ function checkCameraEffect(self, id) {
 function getHighlightMesh(rendering) {
     var mesh = rendering._highlightMesh
     if (!mesh) {
-        mesh = CreatePlane("highlight", { size: 1.0 }, rendering._scene)
-        var hlm = rendering.makeStandardMaterial('highlightMat')
+        mesh = CreatePlane("highlight", { size: 1.0 }, rendering.scene)
+        var hlm = rendering.makeStandardMaterial('block_highlight_mat')
         hlm.backFaceCulling = false
         hlm.emissiveColor = new Color3(1, 1, 1)
         hlm.alpha = 0.2
@@ -484,7 +531,7 @@ function getHighlightMesh(rendering) {
                 new Vector3(-s, s, 0),
                 new Vector3(s, s, 0)
             ]
-        }, rendering._scene)
+        }, rendering.scene)
         lines.color = new Color3(1, 1, 1)
         lines.parent = mesh
 
@@ -511,13 +558,13 @@ function getHighlightMesh(rendering) {
  */
 /** @internal */
 Rendering.prototype.debug_SceneCheck = function () {
-    var meshes = this._scene.meshes
-    var octree = this._scene._selectionOctree
+    var meshes = this.scene.meshes
+    var octree = this.scene._selectionOctree
     var dyns = octree.dynamicContent
     var octs = []
     var numOcts = 0
     var numSubs = 0
-    var mats = this._scene.materials
+    var mats = this.scene.materials
     var allmats = []
     mats.forEach(mat => {
         // @ts-ignore
@@ -529,7 +576,7 @@ Rendering.prototype.debug_SceneCheck = function () {
         block.entries.forEach(m => octs.push(m))
     })
     meshes.forEach(function (m) {
-        if (m.isDisposed) warn(m, 'disposed mesh in scene')
+        if (m.isDisposed()) warn(m, 'disposed mesh in scene')
         if (empty(m)) return
         if (missing(m, dyns, octs)) warn(m, 'non-empty mesh missing from octree')
         if (!m.material) { warn(m, 'non-empty scene mesh with no material'); return }
@@ -583,7 +630,7 @@ Rendering.prototype.debug_SceneCheck = function () {
 /** @internal */
 Rendering.prototype.debug_MeshCount = function () {
     var ct = {}
-    this._scene.meshes.forEach(m => {
+    this.scene.meshes.forEach(m => {
         var n = m.name || ''
         n = n.replace(/-\d+.*/, '#')
         n = n.replace(/\d+.*/, '#')

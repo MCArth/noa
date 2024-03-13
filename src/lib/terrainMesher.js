@@ -1,11 +1,8 @@
-/** 
- * @module 
- * @internal exclude this file from API docs 
-*/
 
 import ndarray from 'ndarray'
 import { makeProfileHook } from './util'
-import Chunk from './chunk'
+import { Chunk } from './chunk'
+import { terrainMeshFlag } from './rendering'
 
 
 
@@ -34,7 +31,10 @@ var ignoreMaterials = false
  * @param {import('../index').Engine} noa
  * @param {import('./terrainMaterials').TerrainMatManager} terrainMatManager
  */
-export default function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, BabylonVertexDataCtor, opts) {
+export function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, BabylonVertexDataCtor, opts) {
+
+    this.allTerrainMaterials = terrainMatManager.allMaterials
+    
     // internally expose the default flat material used for untextured terrain
     this._defaultMaterial = terrainMatManager._defaultMat
 
@@ -57,7 +57,7 @@ export default function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, B
 
     const doThreadedMeshing = true
 
-    function lazyInitMeshingObjs() {
+    const lazyInitMeshingObjs = () => {
         if (!worker) {
             const solidLookupArr = noa.registry._solidityLookup
             const doAO = noa.rendering.useAO
@@ -117,16 +117,20 @@ export default function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, B
                 const chunk = noa.world._storage.getChunkByIndexes(chunkI, chunkJ, chunkK)
                 if (chunk) {
                     // remove any previous terrain meshes
-                    chunk._terrainMeshes.forEach(m => m.dispose())
-                    chunk._terrainMeshes.length = 0
+                    this.disposeChunk(chunk)
 
                     var meshes = meshBuilder.buildMesh(vertexDataInfo)
 
                     // add meshes to scene and finish
                     meshes.forEach((mesh) => {
-                        noa.rendering.addMeshToScene(mesh, true, chunk.pos)
                         mesh.cullingStrategy = BabylonMeshCtor.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
+                        noa.rendering.addMeshToScene(mesh, true, chunk.pos)
+                        noa.emit('addingTerrainMesh', mesh)
+                        mesh.freezeNormals()
+                        mesh.freezeWorldMatrix()
+        
                         chunk._terrainMeshes.push(mesh)
+                        mesh.metadata[terrainMeshFlag] = true
                     })
                 }
                 else {
@@ -149,7 +153,10 @@ export default function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, B
     }
 
     this.disposeChunk = function (chunk) {
-        chunk._terrainMeshes.forEach(m => m.dispose())
+        chunk._terrainMeshes.forEach(mesh => {
+            noa.emit('removingTerrainMesh', mesh)
+            mesh.dispose()
+        })
         chunk._terrainMeshes.length = 0
     }
 
@@ -168,7 +175,7 @@ export default function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, B
     }
     /**
      * meshing entry point and high-level flow
-     * @param {import('./chunk').default} chunk 
+     * @param {import('./chunk').Chunk} chunk 
      */
     this.meshChunk = function (chunk) {
         lazyInitMeshingObjs() // Give client time to register blocks etc before sending all info to worker
@@ -207,8 +214,7 @@ export default function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, B
         }
         else {
             // remove any previous terrain meshes
-            chunk._terrainMeshes.forEach(m => m.dispose())
-            chunk._terrainMeshes.length = 0
+            this.disposeChunk(chunk)
 
             // greedy mesher generates struct of face data
             var faceDataSet = greedyMesher.mesh(chunk)
@@ -223,9 +229,14 @@ export default function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, B
 
             // add meshes to scene and finish
             meshes.forEach((mesh) => {
-                noa.rendering.addMeshToScene(mesh, true, chunk.pos)
                 mesh.cullingStrategy = BabylonMeshCtor.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
+                noa.rendering.addMeshToScene(mesh, true, chunk.pos)
+                noa.emit('addingTerrainMesh', mesh)
+                mesh.freezeNormals()
+                mesh.freezeWorldMatrix()
+
                 chunk._terrainMeshes.push(mesh)
+                mesh.metadata[terrainMeshFlag] = true
             })
         }
     }
@@ -575,7 +586,7 @@ export function GreedyMesher(
     /** 
      * Entry point
      * 
-     * @param {import('./chunk').default} chunk
+     * @param {import('./chunk').Chunk} chunk
      * @returns {Object.<string, MeshedFaceData>} keyed by terrain material ID 
      */
     this.mesh = function (chunk) {
@@ -672,49 +683,61 @@ export function GreedyMesher(
     /**
      * Rigging for a transposed (i,j,k) => boolean solidity lookup, 
      * that knows how to query into neigboring chunks at edges.
-     * Uses class-scoped references to voxel ndarrays, that are set above.
+     * This sets up the indirection used by `voxelIsSolid` below.
     */
     function prepareSolidityLookup(nabVoxelsT, size) {
-        currentChunkVoxels = nabVoxelsT.get(0, 0, 0)
-        currentNeighbors = nabVoxelsT
-        if (edgeValueLookup.length !== size + 1) {
-            edgeValueLookup = []
-            coordValueLookup = []
-            missingValueLookup = []
-            for (var i = -1; i < size + 1; i++) {
-                var loc = (i < 0) ? 0 : (i < size) ? 1 : 2
-                edgeValueLookup[i] = [-1, 0, 1][loc] | 0
-                coordValueLookup[i] = [size - 1, i, 0][loc] | 0
-                missingValueLookup[i] = [0, i, size - 1][loc] | 0
+        if (solidityLookupInittedSize !== size) {
+            solidityLookupInittedSize = size
+            voxelIDtoSolidity = solidLookupArr
+
+            for (var x = -1; x < size + 1; x++) {
+                var loc = (x < 0) ? 0 : (x < size) ? 1 : 2
+                coordToLoc[x + 1] = [0, 1, 2][loc]
+                edgeCoordLookup[x + 1] = [size - 1, x, 0][loc]
+                missingCoordLookup[x + 1] = [0, x, size - 1][loc]
+            }
+        }
+
+        var centerChunk = nabVoxelsT.get(0, 0, 0)
+        for (var i = 0; i < 3; i++) {
+            for (var j = 0; j < 3; j++) {
+                for (var k = 0; k < 3; k++) {
+                    var ix = i * 9 + j * 3 + k
+                    var nab = nabVoxelsT.get(i - 1, j - 1, k - 1)
+                    var type = 0
+                    if (!nab) type = 1
+                    if (nab === centerChunk) type = 2
+                    voxTypeLookup[ix] = type
+                    voxLookup[ix] = nab || centerChunk
+                }
             }
         }
     }
 
-    var edgeValueLookup = []
-    var coordValueLookup = []
-    var missingValueLookup = []
-    var currentChunkVoxels
-    var currentNeighbors
+    var solidityLookupInittedSize = -1
+    var voxelIDtoSolidity = [false, true]
+    var voxLookup = Array(27).fill(null)
+    var voxTypeLookup = Array(27).fill(0)
+    var coordToLoc = [0, 1, 1, 1, 1, 1, 2]
+    var edgeCoordLookup = [3, 0, 1, 2, 3, 0]
+    var missingCoordLookup = [0, 0, 1, 2, 3, 3]
+
 
     function voxelIsSolid(i, j, k) {
-        var ni = edgeValueLookup[i] | 0
-        var nj = edgeValueLookup[j] | 0
-        var nk = edgeValueLookup[k] | 0
-        if ((ni | nj | nk) === 0) {
-            return solidLookupArr[currentChunkVoxels.get(i, j, k)]
+        var li = coordToLoc[i + 1]
+        var lj = coordToLoc[j + 1]
+        var lk = coordToLoc[k + 1]
+        var ix = li * 9 + lj * 3 + lk
+        var voxArray = voxLookup[ix]
+        var type = voxTypeLookup[ix]
+        if (type === 2) {
+            return voxelIDtoSolidity[voxArray.get(i, j, k)]
         }
-        var vox = currentNeighbors.get(ni, nj, nk)
-        if (vox) {
-            var ci = coordValueLookup[i] | 0
-            var cj = coordValueLookup[j] | 0
-            var ck = coordValueLookup[k] | 0
-            return solidLookupArr[vox.get(ci, cj, ck)]
-        } else {
-            var mi = missingValueLookup[i] | 0
-            var mj = missingValueLookup[j] | 0
-            var mk = missingValueLookup[k] | 0
-            return solidLookupArr[currentChunkVoxels.get(mi, mj, mk)]
-        }
+        var lookup = [edgeCoordLookup, missingCoordLookup][type]
+        var ci = lookup[i + 1]
+        var cj = lookup[j + 1]
+        var ck = lookup[k + 1]
+        return voxelIDtoSolidity[voxArray.get(ci, cj, ck)]
     }
 
 
@@ -1066,6 +1089,7 @@ export function MeshBuilder(
             var mesh = new BabylonMeshCtor(name, scene)
             var vdat = new BabylonVertexDataCtor()
 
+            // finish the mesh
             vdat.positions = positions
             vdat.indices = indices
             vdat.normals = normals

@@ -1,7 +1,3 @@
-/** 
- * The Camera class is found at [[Camera | `noa.camera`]].
- * @module noa.camera
- */
 
 import vec3 from 'gl-vec3'
 import aabb from 'aabb-3d'
@@ -10,13 +6,15 @@ import sweep from 'voxel-aabb-sweep'
 
 
 // default options
-var defaults = {
-    inverseX: false,
-    inverseY: false,
-    sensitivityX: 10,
-    sensitivityY: 10,
-    initialZoom: 0,
-    zoomSpeed: 0.2,
+function CameraDefaults() {
+    this.inverseX = false
+    this.inverseY = false
+    this.sensitivityMult = 1
+    this.sensitivityMultOutsidePointerlock = 0
+    this.sensitivityX = 10
+    this.sensitivityY = 10
+    this.initialZoom = 0
+    this.zoomSpeed = 0.2
 }
 
 
@@ -34,7 +32,7 @@ var originVector = vec3.create()
  * mouse sensitivity, and so on.
  * 
  * This module uses the following default options (from the options
- * object passed to the [[Engine]]):
+ * object passed to the {@link Engine}):
  * ```js
  * var defaults = {
  *     inverseX: false,
@@ -49,14 +47,13 @@ var originVector = vec3.create()
 
 export class Camera {
 
-    /** @internal */
+    /** 
+     * @internal 
+     * @param {import('../index').Engine} noa
+     * @param {Partial.<CameraDefaults>} opts
+    */
     constructor(noa, opts) {
-        opts = Object.assign({}, defaults, opts)
-
-        /** 
-         * @internal
-         * @type {import('../index').Engine}
-        */
+        opts = Object.assign({}, new CameraDefaults, opts)
         this.noa = noa
 
         /** Horizontal mouse sensitivity. Same scale as Overwatch (typical values around `5..10`) */
@@ -71,8 +68,18 @@ export class Camera {
         /** Mouse look inverse (vertical) */
         this.inverseY = !!opts.inverseY
 
-        /** For temporarily disabling mouse-look inputs */
-        this.inputsDisabled = false
+        /** 
+         * Multiplier for temporarily altering mouse sensitivity.
+         * Set this to `0` to temporarily disable camera controls.
+        */
+        this.sensitivityMult = opts.sensitivityMult
+
+        /** 
+         * Multiplier for altering mouse sensitivity when pointerlock
+         * is not active - default of `0` means no camera movement.
+         * Note this setting is ignored if pointerLock isn't supported.
+         */
+        this.sensitivityMultOutsidePointerlock = opts.sensitivityMultOutsidePointerlock
 
         /** 
          * Camera yaw angle. 
@@ -258,25 +265,37 @@ export class Camera {
      * 
     */
 
-    /*
-    *  Called before render, if mouseLock etc. is applicable.
-    *  Consumes input mouse events x/y, updates camera angle and zoom
+
+
+    /**
+     * Called before render, if mouseLock etc. is applicable.
+     * Applies current mouse x/y inputs to the camera angle and zoom
+     * @internal
     */
 
     applyInputsToCamera() {
+
+        // conditional changes to mouse sensitivity
+        var senseMult = this.sensitivityMult
+        if (this.noa.container.supportsPointerLock) {
+            if (!this.noa.container.hasPointerLock) {
+                senseMult *= this.sensitivityMultOutsidePointerlock
+            }
+        }
+        if (senseMult === 0) return
+
         // dx/dy from input state
-        var state = this.noa.inputs.pointerState
-        // console.debug(state.dx, state.dy)
-        // bugFix(state) // TODO: REMOVE EVENTUALLY
-        bugFix2(state)
+        var pointerState = this.noa.inputs.pointerState
+        // console.debug(pointerState.dx, pointerState.dy)
+        // bugFix(pointerState) // TODO: REMOVE EVENTUALLY
+        bugFix2(pointerState)
 
         // convert to rads, using (sens * 0.0066 deg/pixel), like Overwatch
         var conv = 0.0066 * Math.PI / 180
-        var dy = state.dy * this.sensitivityY * conv
-        var dx = state.dx * this.sensitivityX * conv
-        if (this.inverseY) dy = -dy
+        var dx = pointerState.dx * this.sensitivityX * senseMult * conv
+        var dy = pointerState.dy * this.sensitivityY * senseMult * conv
         if (this.inverseX) dx = -dx
-        if (this.inputsDisabled) dx = dy = 0
+        if (this.inverseY) dy = -dy
 
         dy -= this._kickbackDiffToApply
         this._kickbackDiffToApply = 0
@@ -338,15 +357,15 @@ export class Camera {
         var maxZZoom = Math.max(cameraObstructionZDistance(this)-0.2, 0)
         if (this.currentZoom > maxZZoom) this.currentZoom = maxZZoom
 
-        if (this.noa.rendering._camera.position.x || this.noa.rendering._camera.position.y) {
+        if (this.noa.rendering.camera.position.x || this.noa.rendering.camera.position.y) {
             var maxYZoom = Math.max(cameraObstructionYDistance(this)-0.2, 0)
-            if (this.noa.rendering._camera.position.y > maxYZoom) {
-                this.noa.rendering._camera.position.y = maxYZoom
+            if (this.noa.rendering.camera.position.y > maxYZoom) {
+                this.noa.rendering.camera.position.y = maxYZoom
             }
 
             var maxXZoom = Math.max(cameraObstructionXDistance(this)-0.2, 0)
-            if (this.noa.rendering._camera.position.x > maxXZoom) {
-                this.noa.rendering._camera.position.x = maxXZoom
+            if (this.noa.rendering.camera.position.x > maxXZoom) {
+                this.noa.rendering.camera.position.x = maxXZoom
             }
         }
     }
@@ -377,7 +396,7 @@ function cameraObstructionZDistance(self) {
 function cameraObstructionYDistance(self) {
     _camBox.setPosition(self._localGetPosition())
     _camBox.translate(_camBoxVec)
-    var dist = Math.max(self.targetY, self.noa.rendering._camera.position.y) + 0.5
+    var dist = Math.max(self.targetY, self.noa.rendering.camera.position.y) + 0.5
     var dir = self.getUpDirection()
     vec3.scale(_sweepVec, dir, dist)
     return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)
@@ -387,10 +406,10 @@ function cameraObstructionYDistance(self) {
 function cameraObstructionXDistance(self) {
     const position = self._localGetPosition()
     const yDir = findVectorToPointOnUnitSphere(self.heading, self.pitch+Math.PI/2)
-    vec3.scaleAndAdd(position, position, yDir, self.noa.rendering._camera.position.y)
+    vec3.scaleAndAdd(position, position, yDir, self.noa.rendering.camera.position.y)
     _camBox.setPosition(position)
     _camBox.translate(_camBoxVec)
-    var dist = Math.max(self.targetX, self.noa.rendering._camera.position.x) + 0.5
+    var dist = Math.max(self.targetX, self.noa.rendering.camera.position.x) + 0.5
     const dir = findVectorToPointOnUnitSphere(self.heading-Math.PI/2, 0)
     vec3.scale(_sweepVec, dir, dist)
     return sweep(_getVoxel, _camBox, _sweepVec, _hitFn, true)

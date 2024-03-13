@@ -3,7 +3,7 @@
  * materials, properties, and events.
  *
  * This module uses the following default options (from the options
- * object passed to the [[Engine]]):
+ * object passed to the {@link Engine}):
  *
  * ```js
  * var defaults = {
@@ -38,7 +38,7 @@ export class Registry {
      * @param {string} name of this material
      * @param {Partial<MaterialOptions>} [options]
      */
-    registerMaterial: (name?: string, options?: Partial<MaterialOptions>, ...args: any[]) => number;
+    registerMaterial: (name?: string, options?: Partial<MaterialOptions>) => number;
     /**
      * block solidity (as in physics)
      * @param id
@@ -74,6 +74,13 @@ export class Registry {
         atlasIndex: number;
         renderMat: any;
     };
+    /**
+     * Given a texture URL, does any material using that
+     * texture need alpha?
+     * @internal
+     * @returns {boolean}
+     */
+    _textureNeedsAlpha: (tex?: string) => boolean;
     /** @internal */
     _solidityLookup: boolean[];
     /** @internal */

@@ -1,7 +1,5 @@
-/** 
- * @module 
- * @internal exclude this file from API docs 
-*/
+
+
 
 
 // helper to swap item to end and pop(), instead of splice()ing
@@ -16,21 +14,6 @@ export function removeUnorderedListItem(list, item) {
 }
 
 
-
-// loop over a function for a few ms, or until it returns true
-export function loopForTime(maxTimeInMS, callback, startTime) {
-    var t0 = startTime || performance.now()
-    var res = callback()
-    if (res) return
-    var t1 = performance.now(), dt = t1 - startTime
-    // tweak time to make the average delay equal to the desired amt
-    var cutoff = t0 + maxTimeInMS - dt / 2
-    if (t1 > cutoff) return
-    var maxIter = 1000 // sanity check
-    for (var i = 0; i < maxIter; i++) {
-        if (callback() || performance.now() > cutoff) return
-    }
-}
 
 
 
@@ -154,17 +137,22 @@ export function locationHasher(i, j, k) {
  * 
 */
 
-export function ChunkStorage() {
-    var hash = {}
-    // exposed API - getting and setting
-    this.getChunkByIndexes = (i, j, k) => {
-        return hash[locationHasher(i, j, k)] || null
+/** @internal */
+export class ChunkStorage {
+    constructor() {
+        this.hash = {}
     }
-    this.storeChunkByIndexes = (i, j, k, chunk) => {
-        hash[locationHasher(i, j, k)] = chunk
+
+    /** @returns {import('./chunk').Chunk} */
+    getChunkByIndexes(i = 0, j = 0, k = 0) {
+        return this.hash[locationHasher(i, j, k)] || null
     }
-    this.removeChunkByIndexes = (i, j, k) => {
-        delete hash[locationHasher(i, j, k)]
+    /** @param {import('./chunk').Chunk} chunk */
+    storeChunkByIndexes(i = 0, j = 0, k = 0, chunk) {
+        this.hash[locationHasher(i, j, k)] = chunk
+    }
+    removeChunkByIndexes(i = 0, j = 0, k = 0) {
+        delete this.hash[locationHasher(i, j, k)]
     }
 }
 
@@ -181,6 +169,7 @@ export function ChunkStorage() {
  * 
 */
 
+/** @internal */
 export class LocationQueue {
     constructor() {
         this.arr = []
@@ -236,22 +225,8 @@ export class LocationQueue {
         this.hash = {}
         for (var key in queue.hash) this.hash[key] = true
     }
-    sortByDistance(locToDist, reverse = false, partialOK = false) {
-        var len = this.arr.length
-        // should we only do a partial sort?
-        var doPartial = (partialOK && len > 1000)
-        if (!doPartial) {
-            sortLocationArrByDistance(this.arr, locToDist, reverse)
-            return
-        }
-        // sort just the first/last 100 elements
-        var subset = this.arr.slice(0, 100).concat(this.arr.slice(len - 100))
-        sortLocationArrByDistance(subset, locToDist, reverse)
-        // copy the subset back over main array
-        for (var i = 0; i < 100; i++) {
-            this.arr[i] = subset[i]
-            this.arr[len - i - 1] = subset[200 - i - 1] // Bloxd fix off by one issue
-        }
+    sortByDistance(locToDist, reverse = false) {
+        sortLocationArrByDistance(this.arr, locToDist, reverse)
     }
 }
 

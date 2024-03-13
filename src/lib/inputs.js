@@ -1,8 +1,3 @@
-/** 
- * The Inputs class is found at [[Inputs | `noa.inputs`]].
- * @module noa.inputs
- */
-
 
 // import { GameInputs } from '../../../game-inputs'
 import { GameInputs } from 'game-inputs'
@@ -42,7 +37,20 @@ const defaultBindings = {
  * for full docs.
  * 
  * This module uses the following default options (from the options
- * object passed to the [[Engine]]):
+ * object passed to the {@link Engine}):
+ * 
+ * ```js
+ *   defaultBindings: {
+ *     "forward":  ["KeyW", "ArrowUp"],
+ *     "backward": ["KeyS", "ArrowDown"],
+ *     "left":     ["KeyA", "ArrowLeft"],
+ *     "right":    ["KeyD", "ArrowRight"],
+ *     "fire":     "Mouse1",
+ *     "mid-fire": ["Mouse2", "KeyQ"],
+ *     "alt-fire": ["Mouse3", "KeyE"],
+ *     "jump":     "Space",
+ *   }
+ * ```
  */
 
  export class Inputs extends GameInputs {

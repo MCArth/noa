@@ -1,7 +1,3 @@
-/** 
- * The Container class is found at [[Container | `noa.container`]].
- * @module noa.container
- */
 
 import { EventEmitter } from 'events'
 import { MicroGameShell } from 'micro-game-shell'
@@ -16,9 +12,13 @@ import { MicroGameShell } from 'micro-game-shell'
  * 
  * This module wraps `micro-game-shell`, which does most of the implementation.
  * 
- * @emits DOMready
- * @emits gainedPointerLock
- * @emits lostPointerLock
+ * **Events**
+ *  + `DOMready => ()`  
+ *    Relays the browser DOMready event, after noa does some initialization
+ *  + `gainedPointerLock => ()`  
+ *    Fires when the game container gains pointerlock.
+ *  + `lostPointerLock => ()`  
+ *    Fires when the game container loses pointerlock.
  */
 
 export class Container extends EventEmitter {
@@ -43,7 +43,7 @@ export class Container extends EventEmitter {
 
         /** The `canvas` element that the game will draw into */
         this.canvas = getOrCreateCanvas(this.element)
-        doCanvasBugfix(this.canvas) // grumble...
+        doCanvasBugfix(noa, this.canvas) // grumble...
 
 
         /** Whether the browser supports pointerLock. @readonly */
@@ -68,6 +68,7 @@ export class Container extends EventEmitter {
         this._shell.maxRenderRate = opts.maxRenderRate
         this._shell.stickyPointerLock = opts.stickyPointerLock
         this._shell.stickyFullscreen = opts.stickyFullscreen
+        this._shell.maxTickTime = 50
 
 
 
@@ -203,12 +204,13 @@ function detectPointerLock(self) {
  * zoomed into its lower left quadrant. 
  * Resizing the canvas fixes the issue (also: resizing page, changing zoom...)
  */
-function doCanvasBugfix(canvas) {
-    var ct = 5
-    var id = setInterval(() => {
+function doCanvasBugfix(noa, canvas) {
+    var ct = 0
+    var fixCanvas = () => {
         var w = canvas.width
         canvas.width = w + 1
         canvas.width = w
-        if (ct-- < 0) clearInterval(id)
-    }, 100)
+        if (ct++ > 10) noa.off('beforeRender', fixCanvas)
+    }
+    noa.on('beforeRender', fixCanvas)
 }
