@@ -17,6 +17,7 @@ import {ParticleSystem} from '@babylonjs/core/Particles' // needed as side effec
 import { Engine } from '@babylonjs/core/Engines/engine'
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine'
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight'
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
@@ -36,7 +37,7 @@ var defaults = {
     showFPS: false,
     antiAlias: true,
     clearColor: [0.8, 0.9, 1],
-    ambientColor: [0.5, 0.5, 0.5],
+    ambientColor: [1, 1, 1],
     lightDiffuse: [1, 1, 1],
     lightSpecular: [1, 1, 1],
     lightVector: [1, -1, 0.5],
@@ -206,10 +207,21 @@ export class Rendering {
         scene.clearColor = Color4.FromArray(opts.clearColor)
         scene.ambientColor = Color3.FromArray(opts.ambientColor)
 
-        var lightVec = Vector3.FromArray(opts.lightVector)
-        this.light = new DirectionalLight('light', lightVec, scene)
-        this.light.diffuse = Color3.FromArray(opts.lightDiffuse)
-        this.light.specular = Color3.FromArray(opts.lightSpecular)
+        // var lightVec = Vector3.FromArray(opts.lightVector)
+        // this.light = new DirectionalLight('light', lightVec, scene)
+
+        var lightVec = new Vector3(0.1, 1, 0.3)
+        this.light = new HemisphericLight('light', lightVec, scene)
+
+        function arrToColor(a) { return new Color3(a[0], a[1], a[2]) }
+        scene.clearColor = Color4.FromColor3(arrToColor(opts.clearColor))
+        scene.ambientColor = arrToColor(opts.ambientColor)
+        this.light.diffuse = arrToColor(opts.lightDiffuse)
+        this.light.specular = arrToColor(opts.lightSpecular)
+        this.light.groundColor = arrToColor([0.5, 0.5, 0.5])
+
+        // this.light.diffuse = Color3.FromArray(opts.lightDiffuse)
+        // this.light.specular = Color3.FromArray(opts.lightSpecular)
 
         // scene options
         scene.skipPointerMovePicking = true
