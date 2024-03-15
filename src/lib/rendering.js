@@ -4,7 +4,8 @@ import { makeProfileHook } from './util'
 
 import { SceneOctreeManager } from './sceneOctreeManager'
 
-import { Scene, ScenePerformancePriority } from '@babylonjs/core/scene'
+// import { Scene, ScenePerformancePriority } from '@babylonjs/core/scene' // Bloxd disable - need to upgrade babylon before this works
+import { Scene } from '@babylonjs/core/scene'
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera'
 import '@babylonjs/core/Materials/Textures/rawTexture' // Needed as side effect for bloxd glb code (I think)
 import '@babylonjs/core/Engines/Extensions/engine.renderTarget' // Not sure why a side effect from here is needed
@@ -172,7 +173,7 @@ export class Rendering {
         scene.detachControl()
 
         // this disables a few babylon features that noa doesn't use
-        scene.performancePriority = ScenePerformancePriority.Intermediate
+        // scene.performancePriority = ScenePerformancePriority.Intermediate // Bloxd disable - need to upgrade babylon before this works
         scene.autoClear = true
 
         // octree manager class
