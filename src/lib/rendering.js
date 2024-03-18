@@ -37,7 +37,7 @@ var defaults = {
     showFPS: false,
     antiAlias: true,
     clearColor: [0.8, 0.9, 1],
-    ambientColor: [1, 1, 1],
+    ambientColor: [0.5, 0.5, 0.5],
     lightDiffuse: [1, 1, 1],
     lightSpecular: [1, 1, 1],
     lightVector: [1, -1, 0.5],
@@ -207,21 +207,19 @@ export class Rendering {
         scene.clearColor = Color4.FromArray(opts.clearColor)
         scene.ambientColor = Color3.FromArray(opts.ambientColor)
 
-        // var lightVec = Vector3.FromArray(opts.lightVector)
-        // this.light = new DirectionalLight('light', lightVec, scene)
+        var dirLightVec = Vector3.FromArray(opts.lightVector)
+        const dirLight = new DirectionalLight('light', dirLightVec, scene)
+        dirLight.diffuse = Color3.FromArray([1, 1, 1])
+        dirLight.specular = Color3.FromArray([1, 1, 1])
+        dirLight.intensity = 1
 
-        var lightVec = new Vector3(0.1, 1, 0.3)
-        this.light = new HemisphericLight('light', lightVec, scene)
+        var oppositeDirLightVec = Vector3.FromArray([-0.5, -1, -1])
+        const oppositeDirLight = new DirectionalLight('light', oppositeDirLightVec, scene)
+        oppositeDirLight.diffuse = Color3.FromArray([1, 1, 1])
+        oppositeDirLight.specular = Color3.FromArray([1, 1, 1])
+        oppositeDirLight.intensity = 0.35
 
-        function arrToColor(a) { return new Color3(a[0], a[1], a[2]) }
-        scene.clearColor = Color4.FromColor3(arrToColor(opts.clearColor))
-        scene.ambientColor = arrToColor(opts.ambientColor)
-        this.light.diffuse = arrToColor(opts.lightDiffuse)
-        this.light.specular = arrToColor(opts.lightSpecular)
-        this.light.groundColor = arrToColor([0.5, 0.5, 0.5])
-
-        // this.light.diffuse = Color3.FromArray(opts.lightDiffuse)
-        // this.light.specular = Color3.FromArray(opts.lightSpecular)
+        this.light = dirLight
 
         // scene options
         scene.skipPointerMovePicking = true
