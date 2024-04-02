@@ -57,7 +57,10 @@ export default function (noa) {
             if (state.onTargetMissing) state.onTargetMissing(id)
             noa.ents.removeComponent(id, noa.ents.names.followsEntity)
         } else {
-            vec3.add(self._localPosition, other._localPosition, state.offset)
+            // BLOXD change start - update position not just local
+            vec3.add(self.position, other.position, state.offset)
+            noa.ents.setPosition(id, self.position)
+            // BLOXD change end
         }
     }
 
