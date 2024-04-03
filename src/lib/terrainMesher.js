@@ -2,7 +2,6 @@
 import ndarray from 'ndarray'
 import { makeProfileHook } from './util'
 import { Chunk } from './chunk'
-import { terrainMeshFlag } from './rendering'
 
 
 
@@ -10,6 +9,8 @@ import { terrainMeshFlag } from './rendering'
 var PROFILE_EVERY = 0
 var ignoreMaterials = false
 
+
+export const terrainMeshFlag = 'noa_chunk_terrain_mesh'
 
 
 

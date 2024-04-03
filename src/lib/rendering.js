@@ -24,6 +24,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode'
 import { CreateLines } from '@babylonjs/core/Meshes/Builders/linesBuilder'
 import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder'
+import { terrainMeshFlag } from './terrainMesher'
 
 
 
@@ -80,8 +81,6 @@ var defaults = {
 export const octreeBlock = 'noa_octree_block'
 export const inDynamicList = 'noa_in_dynamic_list'
 export const inOctreeBlock = 'noa_in_octree_block'
-
-export const terrainMeshFlag = 'noa_chunk_terrain_mesh'
 
 export const objectMeshFlag = "noa_object_base_mesh"
 
