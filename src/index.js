@@ -440,6 +440,8 @@ export class Engine extends EventEmitter {
     */
     render(dt, framePart) {
         try {
+            this.emit('renderTickBegin', dt)
+
             dt *= this.timeScale || 1
 
             // note: framePart is how far we are into the current tick
