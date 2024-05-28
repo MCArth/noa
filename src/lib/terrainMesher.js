@@ -230,6 +230,7 @@ export function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, BabylonVe
 
             // add meshes to scene and finish
             meshes.forEach((mesh) => {
+                mesh.metadata[terrainMeshFlag] = true
                 mesh.cullingStrategy = BabylonMeshCtor.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY
                 noa.rendering.addMeshToScene(mesh, true, chunk.pos)
                 noa.emit('addingTerrainMesh', mesh)
@@ -237,7 +238,6 @@ export function TerrainMesher(noa, terrainMatManager, BabylonMeshCtor, BabylonVe
                 mesh.freezeWorldMatrix()
 
                 chunk._terrainMeshes.push(mesh)
-                mesh.metadata[terrainMeshFlag] = true
             })
         }
     }

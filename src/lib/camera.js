@@ -142,11 +142,6 @@ export class Camera {
         */
         this.currentZoom = opts.initialZoom
 
-        /** @internal */
-        this._dirVector = vec3.fromValues(0, 0, 1)
-
-        this.currentZoom = opts.initialZoom
-
         // bloxd start
         this.onCurrentZoomChange = null
         this.onCurrentZoomSetFromInternals = null
@@ -166,8 +161,11 @@ export class Camera {
         // this._kickbackIncreaseRate = 0
         // bloxd end
 
-        // internals
-        this._dirVector = vec3.fromValues(0, 1, 0)
+        /** @internal */
+        this._dirVector = vec3.fromValues(0, 0, 1)
+        
+        /** @internal workaround for mac/chrome bug */
+        this._skipOneInputForPLBug = false
     }
 
 
@@ -286,9 +284,32 @@ export class Camera {
 
         // dx/dy from input state
         var pointerState = this.noa.inputs.pointerState
+        if (pointerState.dx === 0 && pointerState.dy === 0) {
+            return
+        }
+
+        /*
+         * This is a workaround for two different chrome bugs:
+         *  1. on Mac/chrome, ver~113 - can get wrong mousemove x/y data after
+         *     gaining pointerlock. Doesn't happen immediately, but on the first
+         *     non-zero mousemove event after gaining PL.
+         *  2. on Win/chrome, ver~115, occasional bad mousemove data after
+         *     releaseing pointerlock, but before getting event for losing PL.
+         *  noa.container sets the ignore flag for both those cases, and best 
+         *  we can do here is ignore one frame of mouse input.
+         *  Note: have not filed either issue, I can't easily reproduce.
+         *  If anyone else finds a way to, please file them!
+        */
+        if (this._skipOneInputForPLBug) {
+            this._skipOneInputForPLBug = false
+            return
+        }
+
+        // probably safe to remove this bugfix in the next update
+        // bugFix(pointerState)
+
         // console.debug(pointerState.dx, pointerState.dy)
-        // bugFix(pointerState) // TODO: REMOVE EVENTUALLY
-        bugFix2(pointerState)
+        bugFix2(pointerState) 
 
         // convert to rads, using (sens * 0.0066 deg/pixel), like Overwatch
         var conv = 0.0066 * Math.PI / 180
